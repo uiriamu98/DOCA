@@ -118,10 +118,6 @@ function loadState() {
         saved.manualDonations = {};
     }
 
-    /*
-     * Ensure every archived donation remains assigned
-     * to the goal whose archive contains it.
-     */
     for (const goal of saved.closed) {
         if (!goal.id) {
             goal.id = newQueueId();
@@ -1152,12 +1148,6 @@ async function collectOpen(options = {}) {
         }
     });
 
-    /*
-     * Restore manually retained donations when their original
-     * source no longer returns them.
-     *
-     * Live source records take priority to avoid duplicates.
-     */
     const liveIds = new Set(items.map(item => item.id));
 
     for (const saved of Object.values(state.manualDonations || {})) {
@@ -1410,7 +1400,7 @@ function loadOverlayStyle() {
 
 let overlayStyle = loadOverlayStyle();
 
-/* Public: the overlays read this (CORS open so the names overlay can too) */
+/* Public: the overlays read this */
 app.get("/api/style", (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.json(overlayStyle);
@@ -1676,10 +1666,6 @@ app.post("/api/admin/move-donation", async (req, res) => {
             });
         }
 
-        /*
-         * Find the donation in live/retained records first.
-         * If it is archived, its saved archive record is the fallback.
-         */
         const open = await collectOpen({ allGoals: true });
 
         const liveItem = open.items.find(
@@ -1720,7 +1706,7 @@ app.post("/api/admin/move-donation", async (req, res) => {
         };
 
         /*
-         * Moving into an archived goal:
+        * Moving into an archived goal:
          * store one archive snapshot and recalculate its total.
          */
         if (targetClosed) {
