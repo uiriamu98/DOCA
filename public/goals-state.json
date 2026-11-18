@@ -1,0 +1,24 @@
+{
+  "targetCurrency": "CAD",
+  "current": {
+    "id": "goal_initial",
+    "name": "New Goal Name",
+    "amount": 1000
+  },
+  "closed": [],
+  "queue": [
+    {
+      "id": "mwm3x8xd5lgpn",
+      "name": "Next Goal",
+      "amount": 1000
+    }
+  ],
+  "sourcesConfig": {
+    "donatePay": true,
+    "donationAlerts": true,
+    "streamlabs": true
+  },
+  "excludedDonationIds": [],
+  "goalDonationIds": {},
+  "manualDonations": {}
+}

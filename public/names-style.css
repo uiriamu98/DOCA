@@ -1,0 +1,86 @@
+/* Body */
+body {
+    margin: 0;
+    background: transparent;
+    font-family: "Press Start 2P", sans-serif;
+    color: white;
+    text-shadow:
+        2px 2px 0 black,
+        -2px -2px 0 black,
+        2px -2px 0 black,
+        -2px 2px 0 black;
+    overflow: hidden;
+}
+
+/* Lines */
+#transactions,
+#monthly-transactions,
+#recent-transactions {
+    position: relative;
+    width: 100%;
+    height: 32px;
+    font-size: 24px;
+    line-height: 26px;
+    text-align: center;
+}
+
+/* Spacing */
+#monthly-transactions,
+#recent-transactions {
+    margin-top: 3px;
+}
+
+/* Startup label state */
+#transactions.label-state,
+#monthly-transactions.label-state,
+#recent-transactions.label-state {
+    padding-top: 3px;
+    box-sizing: border-box;
+    line-height: 25px;
+    opacity: 0.25;
+}
+
+/* Label fade */
+#transactions.label-fade,
+#monthly-transactions.label-fade,
+#recent-transactions.label-fade {
+    animation: label-fade 0.35s ease forwards;
+}
+
+/* Donation */
+.donation {
+    position: absolute;
+    top: 6px;
+    left: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 22px;
+    text-align: center;
+    opacity: 1;
+}
+
+/* DonationAlerts F57D07 */
+.donation.source-da {
+    color: #F57D07;
+}
+
+/* DonatePay BFFF8C */
+.donation.source-dp {
+    color: #BFFF8C;
+}
+
+/* Streamlabs 009CDE */
+.donation.source-streamlabs {
+    color: #009CDE;
+}
+
+/* Label animation */
+@keyframes label-fade {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}

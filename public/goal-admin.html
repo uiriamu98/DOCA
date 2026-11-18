@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script>
+        if (location.protocol === "file:") location.replace("http://localhost:3000/admin");
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+    details.open = true;
+    document.querySelectorAll("details.panel > summary.panelSummary, #currentDetails > summary, .queueDonationsSummary").forEach(s => {
+        s.addEventListener("click", e => {
+            const a = s.querySelector(".panelArrow");
+            if (!a) { e.preventDefault(); return; }
+            if (e.detail === 0) return;
+            const r = a.getBoundingClientRect();
+            if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.preventDefault();
+        });
+    });
+});
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Donation Overlays Control Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto&family=Open+Sans&family=Montserrat&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/goal-styleadmin.css">
+    <style>
+        details.panel > summary.panelSummary > h2 {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="pageMenu" id="pageMenu">
+            <div class="menuGroup">
+                <button type="button" class="pageMenuButton" id="pageMenuButton" aria-haspopup="true" aria-expanded="false">OVERLAYS ▼</button>
+<div class="pageMenuContent">
+    <a href="#" onclick="event.preventDefault(); window.open(`http://${window.location.hostname}:3000/`, '_blank');" rel="noopener noreferrer">GOAL</a>
+    <a href="#" onclick="event.preventDefault(); window.open(`http://${window.location.hostname}:3001/`, '_blank');" rel="noopener noreferrer">NAMES</a>
+</div>
+            </div>
+            <div class="menuGroup">
+                <button type="button" class="pageMenuButton" id="settingsButton" aria-haspopup="true" aria-expanded="false">THEMES ▼</button>
+                <div class="settingsContent" id="settingsContent">
+                    <button type="button" data-theme="default" class="active">DEFAULT</button>
+                    <button type="button" data-theme="spring">SPRING</button>
+                    <button type="button" data-theme="summer">SUMMER</button>
+                    <button type="button" data-theme="autumn">AUTUMN</button>
+                    <button type="button" data-theme="winter">WINTER</button>
+                    <button type="button" data-theme="mono-light">MONO LIGHT</button>
+                    <button type="button" data-theme="mono-dark">MONO DARK</button>
+                    <button type="button" data-theme="custom">CUSTOM</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="message" role="status" aria-live="polite"></div>
+
+        <section>
+            <details class="panel" open>
+                <summary class="panelSummary">
+                    <span class="panelArrow" aria-hidden="true"></span>
+                    <h2>Donation Sources</h2>
+                    <span class="muted panelStatus"> All donations will be added as <span id="currentCurrencyLabel">CAD</span>.</span>
+                </summary>
+                <div class="row">
+                  <label>Sources
+                      <select id="activeSourcesSelect" class="activeSourcesSelect" aria-label="Donation source statuses" disabled>
+                          <option value="" selected disabled>Loading sources...</option>
+                      </select>
+                  </label>
+                  <label>Currency
+                      <select id="currencyStateBox" class="currencyStateSelect" aria-label="Currency conversion">
+                          <option value="CAD">CAD</option>
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="RUB">RUB</option>
+                          <option value="JPY">JPY</option>
+                          <option value="GBP">GBP</option>
+                          <option value="AUD">AUD</option>
+                      </select>
+                  </label>
+                  <div class="rowButtons">
+                      <button id="manageSourcesBtn" type="button" class="primary">Manage Sources</button>
+                      <button id="addSourceBtn" type="button" class="primary">Add Donation Source</button>
+                  </div>
+              </div>
+                </div>
+            </details>
+        </section>
+
+        <section>
+            <details class="panel">
+                <summary class="panelSummary">
+                    <span class="panelArrow" aria-hidden="true"></span>
+                    <h2>Current Goal</h2>
+                </summary>
+                <h2 id="currentHeading" class="goalTitle"></h2>
+                <div class="bar">
+                    <div id="currentFill"></div>
+                    <span id="barAmount"></span>
+                </div>
+                <div id="reachedBanner"></div>
+
+                <details id="currentDetails">
+                    <summary id="currentSummary">
+                        <span class="panelArrow" aria-hidden="true"></span>
+                        <span id="currentSummaryTitle">Donations toward this goal</span>
+                        <div style="text-align: center;"><span class="donationStatus" id="donationStatus"></span></div>
+                    </summary>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="checkboxCell">Count</th>
+                                <th>Date/Time</th>
+                                <th>Name</th>
+                                <th>Message</th>
+                                <th>Source</th>
+                                <th>Currency</th>
+                                <th class="num cadHeaderLabel">CAD</th>
+                                <th>Move to Goal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="currentRows"></tbody>
+                    </table>
+                    <div id="noDonations" class="muted" style="margin-top: 8px;"></div>
+                </details>
+                <hr style="border: none; border-top: 1px solid var(--line); margin: 16px 0;">
+                <div class="row">
+                    <label>Edit Current Goal Name
+                        <input id="editName" class="name" maxlength="80">
+                    </label>
+                    <label><span class="currencyCodeLabel">CAD</span>
+                        <div class="amount-input-wrapper">
+                            <input id="editAmount" class="amount" type="text" inputmode="decimal" min="1" step="any">
+                            <div class="amount-stepper">
+                                <button type="button" data-step="1" aria-label="Increase amount">▲</button>
+                                <button type="button" data-step="-1" aria-label="Decrease amount">▼</button>
+                            </div>
+                        </div>
+                    </label>
+                    <div class="rowButtons">
+                        <button id="saveBtn">Save Changes</button>
+                        <button id="closeGoalBtn" type="button" disabled>Close Goal</button>
+                        <button id="editOverlayBtn" type="button" class="primary">Edit Overlays</button>
+                    </div>
+                </div>
+            </details>
+        </section>
+
+        <section>
+            <details class="panel">
+                <summary class="panelSummary">
+                    <span class="panelArrow" aria-hidden="true"></span>
+                    <h2>Add Goal</h2>
+                    <span class="muted panelStatus"> New goals queue below.</span>
+                </summary>
+                <div class="row">
+                    <label>New Goal Name
+                        <input id="newName" class="name" maxlength="80" placeholder="(required)">
+                    </label>
+                    <label><span class="currencyCodeLabel">CAD</span>
+                        <div class="amount-input-wrapper">
+                            <input id="newAmount" class="amount" type="text" inputmode="decimal" min="1" step="any" value="100">
+                            <div class="amount-stepper">
+                                <button type="button" data-step="1" aria-label="Increase amount">▲</button>
+                                <button type="button" data-step="-1" aria-label="Decrease amount">▼</button>
+                            </div>
+                        </div>
+                    </label>
+                    <div class="rowButtons">
+                        <button id="newBtn" class="primary" disabled>Add To Queue</button>
+                        <button id="newCloseBtn" class="primary" style="display: none;" disabled>Close Current Goal & Start New</button>
+                    </div>
+                </div>
+            </details>
+        </section>
+
+        <section>
+            <details class="panel">
+                <summary class="panelSummary">
+                    <span class="panelArrow" aria-hidden="true"></span>
+                    <h2>Goal Queue</h2>
+                    <span class="muted panelStatus" id="queueStatus"> Nothing waiting...</span>
+                </summary>
+                <div id="queueList"></div>
+                <div id="startNext" style="margin-top: 10px;"></div>
+            </details>
+        </section>
+
+        <section>
+            <details class="panel">
+                <summary class="panelSummary">
+                    <span class="panelArrow" aria-hidden="true"></span>
+                    <h2>Closed Goals</h2>
+                    <span class="muted panelStatus" id="closedStatus"> None yet...</span>
+                </summary>
+                <div id="closedList"></div>
+            </details>
+        </section>
+    </main>
+
+    <div id="overlay" class="overlay">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
+            <button type="button" class="modalBack" id="modalBack" aria-label="Back" style="display: none;">&lt;</button>
+            <button type="button" class="modalClose" id="modalClose" aria-label="Close">X</button>
+            <h2 id="modalTitle"></h2>
+            <div id="modalBody"></div>
+            <div class="buttons">
+                <button id="modalOk" class="primary">YES</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="customThemeOverlay" class="overlay">
+        <div class="modal customThemeModal" role="dialog" aria-modal="true" aria-labelledby="customThemeTitle" tabindex="-1">
+            <button type="button" class="modalClose" id="customClose" aria-label="Close">X</button>
+            <h2 id="customThemeTitle">CUSTOM THEME</h2>
+            <p class="customThemeDescription">Enter HEX Colors</p>
+            <div class="customThemeFields">
+                <label>Background
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="background" maxlength="6" placeholder="000000">
+                    </div>
+                </label>
+                <label>Panels
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="panels" maxlength="6" placeholder="050505">
+                    </div>
+                </label>
+                <label>Text
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="text" maxlength="6" placeholder="FFFFFF">
+                    </div>
+                </label>
+                <label>Secondary
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="secondary" maxlength="6" placeholder="888888">
+                    </div>
+                </label>
+                <label>Borders
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="borders" maxlength="6" placeholder="010003">
+                    </div>
+                </label>
+                <label>Accent
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="accent" maxlength="6" placeholder="880808">
+                    </div>
+                </label>
+                <label>Success
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="success" maxlength="6" placeholder="00FF41">
+                    </div>
+                </label>
+                <label>Alerts
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="alerts" maxlength="6" placeholder="FF69B4">
+                    </div>
+                </label>
+                <label>Progress
+                    <div class="hex-input-wrapper">
+                        <span class="hex-prefix">#</span>
+                        <input type="text" data-color="progress" maxlength="6" placeholder="110101">
+                    </div>
+                </label>
+            </div>
+            <div class="customThemeButtons">
+                <button type="button" id="customConfirm">CONFIRM</button>
+                <button type="button" id="customRandom">RANDOM</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-signature">© 2026 uiriamu98</div>
+
+    <script>
+        let latest = null, modalOpen = false, modalBack = null, fieldsFilled = false, modalRun = null;
+        const RAINBOW_DELAY_MS = 6677;
+        let adminGoalWasComplete = false, adminRainbowTimer = null;
+        const $ = id => document.getElementById(id);
+        const pageMenu = $("pageMenu"), pageMenuButton = $("pageMenuButton"), settingsButton = $("settingsButton"), settingsContent = $("settingsContent");
+        const customColorVariables = { background: "--bg", panels: "--card", text: "--text", secondary: "--muted", borders: "--line", accent: "--accent", success: "--ok", alerts: "--bad", progress: "--bar-bg" };
+        const defaultCustomPalette = { background: "#000000", panels: "#050505", text: "#FFFFFF", secondary: "#888888", borders: "#010003", accent: "#880808", success: "#00FF41", alerts: "#FF69B4", progress: "#110101" };
+
+        function loadCustomPalette() {
+            try {
+                const saved = JSON.parse(localStorage.getItem("donationAdminCustomPalette"));
+                if (!saved) return { ...defaultCustomPalette };
+                const result = { ...defaultCustomPalette };
+                for (const key of Object.keys(result)) {
+                    if (typeof saved[key] === "string" && /^#[0-9a-fA-F]{6}$/.test(saved[key])) result[key] = saved[key].toUpperCase();
+                }
+                return result;
+            } catch (e) {
+                return { ...defaultCustomPalette };
+            }
+        }
+
+        let customPalette = loadCustomPalette();
+
+        function applyCustomPalette(palette) {
+            const root = document.documentElement;
+            root.setAttribute("data-theme", "custom");
+            for (const [key, variable] of Object.entries(customColorVariables)) {
+                root.style.setProperty(variable, palette[key]);
+            }
+            updateButtonContrast();
+        }
+
+        function applyTheme(theme) {
+            const validThemes = ["default", "mono-light", "mono-dark", "spring", "summer", "autumn", "winter", "custom"];
+            if (!validThemes.includes(theme)) theme = "default";
+            const root = document.documentElement;
+            for (const variable of Object.values(customColorVariables)) {
+                root.style.removeProperty(variable);
+            }
+            if (theme === "default") root.removeAttribute("data-theme");
+            else if (theme === "custom") applyCustomPalette(customPalette);
+            else root.setAttribute("data-theme", theme);
+            updateButtonContrast();
+            document.querySelectorAll("#settingsContent button[data-theme]").forEach(b => b.classList.toggle("active", b.dataset.theme === theme));
+            try { localStorage.setItem("donationAdminTheme", theme); } catch (e) {}
+        }
+
+        let savedTheme = "default";
+        try { savedTheme = localStorage.getItem("donationAdminTheme") || "default"; } catch (e) {}
+        applyTheme(savedTheme);
+
+// Update currency label dynamically and save target currency when dropdown changes
+document.addEventListener("DOMContentLoaded", () => {
+    const currBox = $("currencyStateBox");
+    const currLabel = $("currentCurrencyLabel");
+    if (currBox && currLabel) {
+        currBox.addEventListener("change", async () => {
+            const val = currBox.value;
+            currLabel.textContent = val || "CAD";
+            try {
+                await api("/api/admin/set-target-currency", { method: "POST", body: JSON.stringify({ currency: val }) });
+                say(`Target currency changed to ${val}.`, "ok");
+                await refresh();
+            } catch (e) {
+                say(e.message, "bad");
+            }
+        });
+    }
+});
+
+        const customThemeOverlay = $("customThemeOverlay"), customThemeInputs = customThemeOverlay.querySelectorAll("[data-color]");
+        let customDraft = {}, previousTheme = "default", customEditorOpen = false;
+
+        function readCurrentPalette() {
+            const styles = getComputedStyle(document.documentElement), result = {};
+            for (const [key, variable] of Object.entries(customColorVariables)) {
+                result[key] = styles.getPropertyValue(variable).trim();
+            }
+            return result;
+        }
+
+        function paintCustomInput(input) {
+            const fullHex = "#" + input.value.trim();
+            const prefix = input.parentElement.querySelector(".hex-prefix");
+            if (/^#[0-9a-fA-F]{6}$/.test(fullHex)) {
+                input.style.background = fullHex;
+                const textColor = contrastRatio(fullHex, "#000000") >= contrastRatio(fullHex, "#FFFFFF") ? "#000000" : "#FFFFFF";
+                input.style.color = textColor;
+                if (prefix) prefix.style.color = textColor;
+            } else {
+                input.style.background = "";
+                input.style.color = "";
+                if (prefix) prefix.style.color = "";
+            }
+        }
+
+        function updateCustomInputs(palette) {
+            customThemeInputs.forEach(i => { i.value = (palette[i.dataset.color] || "").replace("#", ""); paintCustomInput(i); });
+        }
+
+        function openCustomEditor() {
+            previousTheme = document.documentElement.getAttribute("data-theme") || "default";
+            customDraft = { ...defaultCustomPalette, ...readCurrentPalette() };
+            for (const key of Object.keys(defaultCustomPalette)) {
+                if (!/^#[0-9a-fA-F]{6}$/.test(customDraft[key])) customDraft[key] = defaultCustomPalette[key];
+            }
+            updateCustomInputs(customDraft);
+            customEditorOpen = true;
+            showOverlay(customThemeOverlay, settingsButton);
+            pageMenu.classList.remove("settingsOpen");
+            settingsButton.setAttribute("aria-expanded", "false");
+            applyCustomPalette(customDraft);
+        }
+
+        function cancelCustomEditor() {
+            if (!customEditorOpen) return;
+            customEditorOpen = false;
+            hideOverlay(customThemeOverlay);
+            applyTheme(previousTheme);
+        }
+
+        function confirmCustomEditor() {
+            if (!customEditorOpen) return;
+            customPalette = { ...customDraft };
+            try { localStorage.setItem("donationAdminCustomPalette", JSON.stringify(customPalette)); } catch (e) {}
+            customEditorOpen = false;
+            hideOverlay(customThemeOverlay);
+            applyTheme("custom");
+        }
+
+        customThemeInputs.forEach(input => {
+            input.addEventListener("input", () => {
+                const key = input.dataset.color, fullHex = "#" + input.value.trim();
+                if (!/^#[0-9a-fA-F]{6}$/.test(fullHex)) return;
+                customDraft[key] = fullHex.toUpperCase();
+                paintCustomInput(input);
+                applyCustomPalette(customDraft);
+            });
+            input.addEventListener("blur", () => {
+                const key = input.dataset.color, fullHex = "#" + input.value.trim();
+                if (!/^#[0-9a-fA-F]{6}$/.test(fullHex)) input.value = (customDraft[key] || "").replace("#", "");
+                paintCustomInput(input);
+            });
+        });
+
+        $("customConfirm").addEventListener("click", confirmCustomEditor);
+        $("customClose").addEventListener("click", cancelCustomEditor);
+
+        function hexToRgb(hex) {
+            const v = hex.replace("#", "");
+            return { r: parseInt(v.slice(0, 2), 16), g: parseInt(v.slice(2, 4), 16), b: parseInt(v.slice(4, 6), 16) };
+        }
+
+        function rgbToLab(hex) {
+            const rgb = hexToRgb(hex);
+            const linear = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+            const r = linear(rgb.r), g = linear(rgb.g), b = linear(rgb.b);
+            const x = (r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047;
+            const y = (r * 0.2126729 + g * 0.7151522 + b * 0.0721750) / 1.00000;
+            const z = (r * 0.0193339 + g * 0.1191920 + b * 0.9503041) / 1.08883;
+            const f = v => v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116;
+            return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+        }
+
+        function colorDistance(a, b) {
+            const A = rgbToLab(a), B = rgbToLab(b);
+            return Math.sqrt(Math.pow(A[0] - B[0], 2) + Math.pow(A[1] - B[1], 2) + Math.pow(A[2] - B[2], 2));
+        }
+
+        function luminance(hex) {
+            const rgb = hexToRgb(hex);
+            const conv = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+            return 0.2126 * conv(rgb.r) + 0.7152 * conv(rgb.g) + 0.0722 * conv(rgb.b);
+        }
+
+        function contrastRatio(a, b) {
+            const l1 = luminance(a), l2 = luminance(b);
+            return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+        }
+
+        function bestContrastText(bg) {
+            return contrastRatio(bg, "#000000") >= contrastRatio(bg, "#FFFFFF") ? "#000000" : "#FFFFFF";
+        }
+
+        function updateButtonContrast() {
+            const root = document.documentElement, styles = getComputedStyle(root);
+            const acc = styles.getPropertyValue("--accent").trim(), succ = styles.getPropertyValue("--ok").trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(acc)) root.style.setProperty("--button-text", bestContrastText(acc));
+            if (/^#[0-9a-fA-F]{6}$/.test(succ)) root.style.setProperty("--success-button-text", bestContrastText(succ));
+        }
+
+        function randomHex() {
+            return "#" + Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, "0").toUpperCase();
+        }
+
+        function generateRandomPalette() {
+            const result = {};
+            for (const key of Object.keys(customColorVariables)) {
+                let accepted = false;
+                for (let i = 0; i < 50000; i++) {
+                    const cand = randomHex();
+                    if (!Object.values(result).every(e => colorDistance(cand, e) >= 10)) continue;
+                    if (key === "background") { const l = luminance(cand); if (l > 0.1 && l < 0.6) continue; }
+                    if (key === "panels" && contrastRatio(cand, result.background) > 1.5) continue;
+                    if ((key === "text" || key === "secondary") && (contrastRatio(cand, result.background) < 4.5 || contrastRatio(cand, result.panels) < 4.5)) continue;
+                    if (key === "accent" && (contrastRatio(cand, result.background) < 3 || contrastRatio(cand, result.panels) < 3)) continue;
+                    result[key] = cand; accepted = true; break;
+                }
+                if (!accepted) throw new Error("Could not generate palette.");
+            }
+            return result;
+        }
+
+        $("customRandom").addEventListener("click", () => {
+            try {
+                customDraft = generateRandomPalette();
+                updateCustomInputs(customDraft);
+                applyCustomPalette(customDraft);
+            } catch (e) {
+                say(e.message, "bad");
+            }
+        });
+
+        pageMenuButton.addEventListener("click", () => {
+            const isOpen = pageMenu.classList.toggle("open");
+            pageMenu.classList.remove("settingsOpen");
+            settingsButton.setAttribute("aria-expanded", "false");
+            pageMenuButton.setAttribute("aria-expanded", String(isOpen));
+        });
+
+        settingsButton.addEventListener("click", () => {
+            const isOpen = pageMenu.classList.toggle("settingsOpen");
+            pageMenu.classList.remove("open");
+            pageMenuButton.setAttribute("aria-expanded", "false");
+            settingsButton.setAttribute("aria-expanded", String(isOpen));
+        });
+
+        settingsContent.querySelectorAll("button[data-theme]").forEach(b => {
+            b.addEventListener("click", () => {
+                if (b.dataset.theme === "custom") { openCustomEditor(); return; }
+                applyTheme(b.dataset.theme);
+                pageMenu.classList.remove("settingsOpen");
+                settingsButton.setAttribute("aria-expanded", "false");
+                settingsButton.focus();
+            });
+        });
+
+        document.addEventListener("click", e => {
+            if (!pageMenu.contains(e.target)) {
+                pageMenu.classList.remove("open", "settingsOpen");
+                pageMenuButton.setAttribute("aria-expanded", "false");
+                settingsButton.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape") {
+                if (pageMenu.contains(document.activeElement)) (pageMenu.classList.contains("settingsOpen") ? settingsButton : pageMenuButton).focus();
+                pageMenu.classList.remove("open", "settingsOpen");
+                pageMenuButton.setAttribute("aria-expanded", "false");
+                settingsButton.setAttribute("aria-expanded", "false");
+                cancelModal();
+                if (customEditorOpen) cancelCustomEditor();
+            }
+        });
+
+        let overlayReturnFocus = null, lastFocusSpot = null;
+
+        function showOverlay(overlay, returnTo) {
+            if (!overlay.classList.contains("show")) overlayReturnFocus = returnTo || document.activeElement;
+            overlay.classList.add("show");
+            document.querySelector("main").inert = true;
+            pageMenu.inert = true;
+            overlay.querySelector(".modal").focus();
+        }
+
+        function hideOverlay(overlay) {
+            overlay.classList.remove("show");
+            document.querySelector("main").inert = false;
+            pageMenu.inert = false;
+            const back = overlayReturnFocus;
+            overlayReturnFocus = null;
+            if (back && document.contains(back)) back.focus();
+        }
+
+        function focusablesIn(sec) {
+            return [...sec.querySelectorAll("button, input, select, textarea, summary, [tabindex='0']")];
+        }
+
+        function focusSpot() {
+            const act = document.activeElement;
+            if (!act || act === document.body) return null;
+            const sec = act.closest("main > section");
+            if (!sec) return null;
+            const idx = focusablesIn(sec).indexOf(act);
+            if (idx < 0) return null;
+            return { section: [...document.querySelectorAll("main > section")].indexOf(sec), index: idx };
+        }
+
+        function restoreFocusSpot(spot) {
+            if (!spot) return;
+            const act = document.activeElement;
+            if (act && act !== document.body && document.contains(act)) return;
+            const sec = document.querySelectorAll("main > section")[spot.section];
+            if (!sec) return;
+            const items = focusablesIn(sec);
+            for (let i = Math.min(spot.index, items.length - 1); i >= 0 && i < items.length; i++) {
+                items[i].focus({ preventScroll: true });
+                if (document.activeElement === items[i]) return;
+            }
+        }
+
+        document.addEventListener("focusin", () => { lastFocusSpot = focusSpot(); });
+        document.addEventListener("mousedown", e => {
+            if (!e.target.closest("button, input, select, textarea, summary, a, label, [tabindex]")) lastFocusSpot = null;
+        });
+
+        document.addEventListener("keydown", e => {
+            if (e.key !== "Tab") return;
+            const overlay = document.querySelector(".overlay.show");
+            if (!overlay) return;
+            const items = [...overlay.querySelectorAll("button, input, select, textarea")].filter(i => !i.disabled && i.offsetParent !== null);
+            if (!items.length) return;
+            const first = items[0], last = items[items.length - 1], act = document.activeElement;
+            if (e.shiftKey && (act === first || act === overlay.querySelector(".modal"))) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && act === last) { e.preventDefault(); first.focus(); }
+        });
+
+        let lastPointerX = -1, lastPointerY = -1;
+        document.addEventListener("mousemove", e => {
+            if (e.clientX === lastPointerX && e.clientY === lastPointerY) return;
+            lastPointerX = e.clientX;
+            lastPointerY = e.clientY;
+            const overlay = document.querySelector(".overlay.show");
+            if (!overlay) return;
+            const target = e.target.closest("button, input, select, textarea");
+            if (target && overlay.contains(target) && !target.disabled && document.activeElement !== target) target.focus({ preventScroll: true });
+        });
+
+        function el(tag, text, className) {
+            const n = document.createElement(tag);
+            if (text !== undefined && text !== null) n.textContent = text;
+            if (className) n.className = className;
+            return n;
+        }
+
+        async function api(url, options = {}) {
+            const res = await fetch(url, { cache: "no-store", headers: { "Content-Type": "application/json", "X-Admin": "1", ...options.headers }, ...options });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 404 && !data.error) throw new Error("Server is old version.");
+            if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+            return data;
+        }
+
+        let sayTimer = null, sayFadeTimer = null;
+
+        function say(text, kind, slowFade) {
+            const box = $("message");
+            clearTimeout(sayTimer);
+            clearTimeout(sayFadeTimer);
+            box.replaceChildren();
+            if (text) {
+                const b = el("div", text, "banner " + (kind || "ok"));
+                box.appendChild(b);
+                if (slowFade) b.classList.add("slowFade");
+                sayTimer = setTimeout(() => {
+                    b.classList.add("fadeOut");
+                    sayFadeTimer = setTimeout(() => b.remove(), slowFade ? 2000 : 1000);
+                }, 10000);
+            }
+        }
+
+        function money(val) { 
+            return Number(val || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
+        }
+
+        function when(val) {
+            if (!val) return "—";
+            const d = new Date(val);
+            return Number.isNaN(d.getTime()) ? String(val) : d.toLocaleString();
+        }
+
+        function isReached(data) {
+            if (!data) return false;
+            const { current, open } = data;
+            return !!open.reached || (current.amount > 0 && open.total + 0.005 >= current.amount);
+        }
+
+        function donationTable(donations, activeCurr) {
+            const table = el("table");
+            table.style.width = "100%";
+            table.style.tableLayout = "fixed";
+            const cols = el("colgroup");
+            for (let i = 0; i < 6; i++) {
+                const c = el("col");
+                c.style.width = "16.6667%";
+                cols.appendChild(c);
+            }
+            table.appendChild(cols);
+            const head = el("tr");
+            ["Date/Time", "Name", "Message", "Source", "Original Currency", activeCurr || "CAD"].forEach((l, i) => head.appendChild(el("th", l, i === 5 ? "num" : "")));
+            const thead = el("thead");
+            thead.appendChild(head);
+            table.appendChild(thead);
+            const body = el("tbody");
+            for (const d of donations) {
+                const row = el("tr");
+                row.appendChild(el("td", when(d.date)));
+                row.appendChild(el("td", d.name));
+                row.appendChild(el("td", d.message || "—"));
+                row.appendChild(el("td", d.source));
+                row.appendChild(el("td", `${d.amount} ${d.currency}`));
+                row.appendChild(el("td", `${money(d.displayAmount !== undefined ? d.displayAmount : d.amountCAD)} ${activeCurr || "CAD"}`, "num"));
+                body.appendChild(row);
+            }
+            table.appendChild(body);
+            return table;
+        }
+
+        function archiveDonationTable(donations, sourceGoal, data) {
+            const activeCurr = data.targetCurrency || "CAD";
+            const table = el("table"), thead = el("thead"), head = el("tr");
+            ["Date/Time", "Name", "Message", "Source", "Original Currency", activeCurr, "Move to Goal"].forEach((l, i) => head.appendChild(el("th", l, i === 5 ? "num" : "")));
+            thead.appendChild(head);
+            table.appendChild(thead);
+            const body = el("tbody");
+            const dests = [
+                { id: data.current.id, label: `Current: ${data.current.name}` },
+                ...(data.queue || []).map(g => ({ id: g.id, label: `Queue: ${g.name}` })),
+                ...(data.closed || []).filter(g => g.id !== sourceGoal.id).map(g => ({ id: g.id, label: `Archived: ${g.name}` }))
+            ];
+            for (const d of donations) {
+                const row = el("tr");
+                row.appendChild(el("td", when(d.date)));
+                row.appendChild(el("td", d.name));
+                row.appendChild(el("td", d.message || "—"));
+                row.appendChild(el("td", d.source));
+                row.appendChild(el("td", `${d.amount} ${d.currency}`));
+                row.appendChild(el("td", `${money(d.displayAmount !== undefined ? d.displayAmount : d.amountCAD)} ${activeCurr}`, "num"));
+                const moveCell = el("td"), sel = document.createElement("select");
+                sel.className = "moveGoalSelect";
+                sel.setAttribute("aria-label", "Move " + d.name + "'s donation");
+                const ph = el("option", "Select...");
+                ph.value = "";
+                ph.disabled = true;
+                ph.hidden = true;
+                sel.appendChild(ph);
+                dests.forEach(dest => sel.appendChild(Object.assign(el("option", dest.label), { value: dest.id })));
+                sel.disabled = dests.length === 0;
+                sel.addEventListener("change", async () => {
+                    if (!sel.value) return;
+                    sel.disabled = true;
+                    try {
+                        await api("/api/admin/move-donation", { method: "POST", body: JSON.stringify({ id: d.id, targetGoalId: sel.value }) });
+                        say(`${d.name}'s donation moved.`, "ok");
+                        closeModal();
+                        await refresh();
+                    } catch (e) {
+                        sel.value = "";
+                        sel.disabled = dests.length === 0;
+                        say(e.message, "bad");
+                    }
+                });
+                moveCell.appendChild(sel);
+                row.appendChild(moveCell);
+                body.appendChild(row);
+            }
+            table.appendChild(body);
+            return table;
+        }
+
+        function confirmRemoveSource(key, name) {
+            openModalWithBack(openManageSourcesModal, "Are You Sure?", [
+                el("p", `Remove "${name}"?`),
+                el("p", "Donations from this source will no longer be loaded. Goals you already closed keep theirs.", "muted")
+            ], "CONFIRM", async () => {
+                await api("/api/admin/remove-source", { method: "POST", body: JSON.stringify({ key }) });
+                say(`"${name}" removed.`, "ok");
+                await refresh();
+                openManageSourcesModal();
+            });
+        }
+
+        function openEditSourceModal(item) {
+            const makeField = (lbl, attrs) => {
+                const w = document.createElement("label");
+                w.appendChild(document.createTextNode(lbl));
+                const i = document.createElement("input");
+                for (const [k, v] of Object.entries(attrs)) i.setAttribute(k, v);
+                w.appendChild(i);
+                return { w, i };
+            };
+            const n = makeField("Source Name (required)", { maxlength: "30", value: item.name, autocomplete: "off" });
+            const u = makeField("API link (required)", { value: item.url || "", autocomplete: "off" });
+            const t = makeField("Token / API key", { type: "password", value: item.token || "", placeholder: "Leave blank to keep", autocomplete: "off" });
+            const c = makeField("Currency", { maxlength: "3", value: item.currency || "CAD", autocomplete: "off" });
+            const fields = el("div", null, "addSourceFields");
+            [n, u, t, c].forEach(f => fields.appendChild(f.w));
+            const prob = el("p", "", "addSourceProblem");
+            openModalWithBack(openManageSourcesModal, "Edit Source", [fields, prob], "SAVE", async () => {
+                try {
+                    await api("/api/admin/edit-source", { method: "POST", body: JSON.stringify({ key: item.key, name: n.i.value, url: u.i.value, token: t.i.value, currency: c.i.value }) });
+                    say(`"${n.i.value}" updated.`, "ok");
+                    closeModal();
+                    await refresh();
+                    openManageSourcesModal();
+                } catch (e) {
+                    prob.textContent = e.message;
+                    openEditSourceModal(item);
+                }
+            });
+        }
+
+        function openManageSourcesModal() {
+            if (!latest) return;
+            const openSources = latest.open?.sources || {}, customList = latest.customSources || [];
+            const allSources = [
+                { key: "donatePay", name: "DonatePay", removable: false },
+                { key: "donationAlerts", name: "DonationAlerts", removable: false },
+                { key: "streamlabs", name: "Streamlabs", removable: false },
+                ...customList.map(i => ({ ...i, removable: true }))
+            ];
+            const changes = {};
+            const list = el("div", null, "removeSourceList");
+            for (const item of allSources) {
+                const enabled = !!openSources[item.key]?.enabled;
+                changes[item.key] = enabled;
+                const row = el("div", null, "removeSourceRow"), name = el("span", item.name, "removeSourceName"), btnGroup = el("div", null, "rowButtons");
+                btnGroup.style.cssText = "height: auto; display: flex; align-items: center; gap: 5px;";
+                const toggleBtn = el("button", enabled ? "ON" : "OFF", "sourceStatusButton" + (enabled ? " sourceStatusOn" : ""));
+                toggleBtn.type = "button";
+                toggleBtn.addEventListener("click", () => {
+                    const next = !changes[item.key];
+                    changes[item.key] = next;
+                    toggleBtn.textContent = next ? "ON" : "OFF";
+                    toggleBtn.classList.toggle("sourceStatusOn", next);
+                });
+                btnGroup.appendChild(toggleBtn);
+                if (item.removable) {
+                    const editBtn = el("button", "Edit", "removeSourceX");
+                    editBtn.type = "button";
+                    editBtn.addEventListener("click", () => openEditSourceModal(item));
+                    btnGroup.appendChild(editBtn);
+                    const delBtn = el("button", "Delete", "removeSourceX");
+                    delBtn.type = "button";
+                    delBtn.addEventListener("click", () => confirmRemoveSource(item.key, item.name));
+                    btnGroup.appendChild(delBtn);
+                }
+                row.appendChild(name);
+                row.appendChild(btnGroup);
+                list.appendChild(row);
+            }
+            openModal("Manage Sources", [list], "CONFIRM", async () => {
+                const modified = Object.entries(changes).filter(([k, en]) => en !== !!openSources[k]?.enabled);
+                if (!modified.length) { say("No changes made.", "ok"); return; }
+                for (const [k] of modified) await api("/api/admin/toggle-source", { method: "POST", body: JSON.stringify({ source: k }) });
+                render(await api("/api/admin/state"));
+                say("Source settings saved.", "ok");
+            });
+        }
+
+        $("manageSourcesBtn").addEventListener("click", () => { if (!modalOpen && latest) openManageSourcesModal(); });
+
+        function renderDonations(donations, data, activeCurr = "CAD") {
+            const rows = $("currentRows");
+            rows.replaceChildren();
+            const included = donations.filter(d => d.included !== false), excluded = donations.length - included.length;
+            $("donationStatus").textContent = `${included.length} INCLUDED ◀▶ ${excluded} EXCLUDED`;
+            const dests = [
+                ...(data.queue || []).map(g => ({ id: g.id, label: `Queue: ${g.name}` })),
+                ...(data.closed || []).map(g => ({ id: g.id, label: `Archived: ${g.name}` }))
+            ];
+            for (const d of donations) {
+                const row = el("tr", "", "donationRow");
+                if (d.included === false) row.classList.add("excluded");
+                const cell = el("td", "", "checkboxCell"), cb = document.createElement("input");
+                cb.type = "checkbox";
+                cb.className = "donationCheck";
+                cb.checked = d.included !== false;
+                cb.addEventListener("change", async () => {
+                    cb.disabled = true;
+                    try {
+                        await api("/api/admin/toggle-donation", { method: "POST", body: JSON.stringify({ id: d.id, included: cb.checked }) });
+                        say(cb.checked ? `${d.name}'s donation added.` : `${d.name}'s donation excluded.`, "ok");
+                        await refresh();
+                    } catch (e) {
+                        cb.checked = !cb.checked;
+                        cb.disabled = false;
+                        say(e.message, "bad");
+                    }
+                });
+                cell.appendChild(cb);
+                row.appendChild(cell);
+                row.appendChild(el("td", when(d.date)));
+                row.appendChild(el("td", d.name));
+                row.appendChild(el("td", d.message || "—"));
+                row.appendChild(el("td", d.source));
+                row.appendChild(el("td", `${d.amount} ${d.currency}`));
+                row.appendChild(el("td", `${money(d.displayAmount !== undefined ? d.displayAmount : d.amountCAD)} ${activeCurr}`, "num"));
+                const moveCell = el("td"), sel = document.createElement("select");
+                sel.className = "moveGoalSelect";
+                sel.setAttribute("aria-label", "Move " + d.name + "'s donation");
+                const ph = el("option", "Select...");
+                ph.value = "";
+                ph.selected = true;
+                ph.disabled = true;
+                ph.hidden = true;
+                sel.appendChild(ph);
+                dests.forEach(dest => sel.appendChild(Object.assign(el("option", dest.label), { value: dest.id })));
+                sel.disabled = dests.length === 0;
+                sel.addEventListener("change", async () => {
+                    if (!sel.value) return;
+                    sel.disabled = true;
+                    try {
+                        await api("/api/admin/move-donation", { method: "POST", body: JSON.stringify({ id: d.id, targetGoalId: sel.value }) });
+                        say("Donation moved.", "ok");
+                        await refresh();
+                    } catch (e) {
+                        say(e.message, "bad");
+                        sel.disabled = false;
+                        sel.value = "";
+                    }
+                });
+                moveCell.appendChild(sel);
+                row.appendChild(moveCell);
+                rows.appendChild(row);
+            }
+            $("noDonations").textContent = "";
+        }
+
+        function renderQueue(queue, open, goalNumber, current, activeCurr = "CAD") {
+            const list = $("queueList"), openDon = new Set([...list.querySelectorAll(".queueDonationsDetails[open]")].map(d => d.dataset.goalId));
+            list.replaceChildren();
+            if (!queue.length) {
+                $("queueStatus").textContent = " Nothing waiting...";
+            } else {
+                $("queueStatus").textContent = "";
+                queue.forEach(item => {
+                    const row = el("div", null, "queueRow");
+                    const nameLabel = document.createElement("label");
+                    nameLabel.appendChild(document.createTextNode("Goal Name"));
+                    const nameInput = document.createElement("input");
+                    nameInput.className = "name";
+                    nameInput.maxLength = 80;
+                    nameInput.value = item.name;
+                    nameLabel.appendChild(nameInput);
+
+                    const amountLabel = document.createElement("label");
+                    const currencySpan = document.createElement("span");
+                    currencySpan.className = "currencyCodeLabel";
+                    currencySpan.textContent = activeCurr;
+                    amountLabel.appendChild(currencySpan);
+                    const amountWrapper = document.createElement("div");
+                    amountWrapper.className = "amount-input-wrapper";
+                    const amountInput = document.createElement("input");
+                    amountInput.className = "amount";
+                    amountInput.type = "text";
+                    amountInput.inputMode = "decimal";
+                    amountInput.min = "1";
+                    amountInput.step = "any";
+                    const qParts = String(item.amount || "").split(".");
+                    const qInt = qParts[0].replace(/[^0-9]/g, "");
+                    const qDec = qParts.length > 1 ? "." + qParts[1] : "";
+                    amountInput.value = qInt !== "" ? Number(qInt).toLocaleString("en-US") + qDec : item.amount;
+                    const stepper = document.createElement("div");
+                    stepper.className = "amount-stepper";
+                    const up = document.createElement("button");
+                    up.type = "button";
+                    up.dataset.step = "1";
+                    up.textContent = "▲";
+                    const down = document.createElement("button");
+                    down.type = "button";
+                    down.dataset.step = "-1";
+                    down.textContent = "▼";
+                    stepper.append(up, down);
+                    amountWrapper.append(amountInput, stepper);
+                    amountLabel.appendChild(amountWrapper);
+
+                    const save = el("button", "Save Changes");
+                    save.disabled = true;
+                    const check = () => {
+                        const rawVal = amountInput.value.replace(/,/g, "");
+                        const chg = nameInput.value.trim() !== item.name || Number(rawVal) !== Number(item.amount);
+                        nameInput.dataset.dirty = chg ? "1" : "";
+                        amountInput.dataset.dirty = chg ? "1" : "";
+                        save.disabled = !chg || nameInput.value.trim() === "" || !(Number(rawVal) > 0);
+                    };
+                    nameInput.addEventListener("input", check);
+                    amountInput.addEventListener("input", check);
+                    save.addEventListener("click", async () => {
+                        save.disabled = true;
+                        try {
+                            await api("/api/admin/queue-edit", { method: "POST", body: JSON.stringify({ id: item.id, name: nameInput.value.trim(), amount: amountInput.value.replace(/,/g, "") }) });
+                            nameInput.dataset.dirty = "";
+                            amountInput.dataset.dirty = "";
+                            say(`"${nameInput.value.trim()}" saved.`, "ok");
+                            await refresh();
+                        } catch (e) {
+                            say(e.message, "bad");
+                            check();
+                        }
+                    });
+                    row.appendChild(nameLabel);
+                    row.appendChild(amountLabel);
+                    const swap = el("button", "Make Current");
+                    swap.type = "button";
+                    swap.addEventListener("click", e => {
+                        e.stopPropagation();
+                        confirmSwap(item);
+                    });
+                    const remove = el("button", "Delete");
+                    remove.addEventListener("click", () => removeFromQueue(item));
+                    const btns = el("div", null, "queueButtons");
+                    btns.append(save, swap, remove);
+                    row.appendChild(btns);
+                    list.appendChild(row);
+
+                    const donations = latest?.queueDonations?.[item.id] || [];
+                    if (!donations.length) return;
+                    const details = el("details", null, "queueDonationsDetails");
+                    details.dataset.goalId = String(item.id);
+                    details.open = openDon.has(String(item.id));
+
+                    const queueSummary = el("summary", "", "queueDonationsSummary");
+                    const arrowSpan = el("span", "", "panelArrow");
+                    arrowSpan.setAttribute("aria-hidden", "true");
+                    queueSummary.append(arrowSpan, document.createTextNode(`Donations (${donations.length})`));
+                    queueSummary.addEventListener("click", e => {
+                        if (e.detail === 0) return;
+                        const r = arrowSpan.getBoundingClientRect();
+                        if (
+                            e.clientX < r.left ||
+                            e.clientX > r.right ||
+                            e.clientY < r.top ||
+                            e.clientY > r.bottom
+                        ) {
+                            e.preventDefault();
+                        }
+                    });
+                    details.appendChild(queueSummary);
+                    const donBox = el("div", null, "queueDonations");
+                    donations.forEach(d => {
+                        const dRow = el("div", null, "queueDonationRow");
+                        dRow.appendChild(el("span", `${d.name} — ${money(d.displayAmount !== undefined ? d.displayAmount : d.amountCAD)} ${activeCurr}`));
+                        const sel = document.createElement("select");
+                        sel.className = "moveGoalSelect";
+                        sel.setAttribute("aria-label", "Move " + d.name + "'s donation");
+                        const ph = document.createElement("option");
+                        ph.value = "";
+                        ph.textContent = "Select...";
+                        ph.hidden = true;
+                        ph.selected = true;
+                        sel.appendChild(ph);
+
+                        // Add Current goal, other Queue goals, and Closed goals (same as Current Goal table)
+                        sel.appendChild(Object.assign(document.createElement("option"), { value: current.id, textContent: "Current: " + current.name }));
+                        queue.forEach(q => { 
+                            if (q.id !== item.id) {
+                                sel.appendChild(Object.assign(document.createElement("option"), { value: q.id, textContent: "Queue: " + q.name })); 
+                            }
+                        });
+                        (latest.closed || []).forEach(cl => {
+                            sel.appendChild(Object.assign(document.createElement("option"), { value: cl.id, textContent: "Archived: " + cl.name }));
+                        });
+                        sel.addEventListener("change", async () => {
+                            if (!sel.value) return;
+                            sel.disabled = true;
+                            try {
+                                await api("/api/admin/move-donation", { method: "POST", body: JSON.stringify({ id: d.id, targetGoalId: sel.value }) });
+                                say("Donation moved.", "ok");
+                                await refresh();
+                            } catch (e) {
+                                say(e.message, "bad");
+                                sel.disabled = false;
+                                sel.value = "";
+                            }
+                        });
+                        dRow.appendChild(sel);
+                        donBox.appendChild(dRow);
+                    });
+                    details.appendChild(donBox);
+                    list.appendChild(details);
+                });
+            }
+            $("startNext").replaceChildren();
+        }
+
+        function render(data) {
+            latest = data;
+            const { current, open, closed } = data, queue = data.queue || [];
+            const activeCurr = data.targetCurrency || "CAD";
+            const currBox = $("currencyStateBox");
+            const currLabel = $("currentCurrencyLabel");
+            if (currBox && data.targetCurrency) {
+                currBox.value = data.targetCurrency;
+                if (currLabel) currLabel.textContent = data.targetCurrency;
+            }
+            document.querySelectorAll(".cadHeaderLabel").forEach(el => el.textContent = activeCurr);
+            const sourcesSelect = $("activeSourcesSelect");
+            if (sourcesSelect) {
+                const openSources = open?.sources || {}, customList = data.customSources || [];
+                const allSources = [
+                    { key: "donatePay", name: "DonatePay" },
+                    { key: "donationAlerts", name: "DonationAlerts" },
+                    { key: "streamlabs", name: "Streamlabs" },
+                    ...customList.map(i => ({ key: i.key, name: i.name }))
+                ];
+                sourcesSelect.replaceChildren();
+                sourcesSelect.disabled = false;
+                const ph = el("option", `${allSources.length} sources total`);
+                ph.value = "";
+                ph.disabled = true;
+                ph.selected = true;
+                sourcesSelect.appendChild(ph);
+                for (const s of allSources) {
+                    const en = !!openSources[s.key]?.enabled;
+                    const opt = el("option", `${s.name} [${en ? "ON" : "OFF"}]`);
+                    opt.value = s.key;
+                    opt.className = en ? "sourceOptOn" : "sourceOptOff";
+                    sourcesSelect.appendChild(opt);
+                }
+            }
+            $("currentHeading").textContent = current.name;
+            $("currentSummaryTitle").replaceChildren("Donations for ", el("em", current.name));
+            const progress = current.amount > 0 ? Math.min((open.total / current.amount) * 100, 100) : 0;
+            const bar = $("currentFill").parentElement;
+            $("currentFill").style.width = progress + "%";
+            $("barAmount").textContent = `${money(open.total)} / ${money(current.amount)} ${activeCurr}`;
+            if (isReached(data)) {
+                $("closeGoalBtn").disabled = false;
+                if (!adminGoalWasComplete) {
+                    adminGoalWasComplete = true;
+                    say("Goal reached!", "ok", true);
+                }
+            } else {
+                $("closeGoalBtn").disabled = true;
+                adminGoalWasComplete = false;
+            }
+            const banner = $("reachedBanner");
+            banner.replaceChildren();
+            if (open.failed.length) banner.appendChild(el("div", `${open.failed.join(", ")} could not be reached.`, "banner bad"));
+            renderDonations(open.donations, data, activeCurr);
+            if (!fieldsFilled) {
+                $("editName").value = current.name;
+                const parts = String(current.amount || "").split(".");
+                const intPart = parts[0].replace(/[^0-9]/g, "");
+                const decPart = parts.length > 1 ? "." + parts[1] : "";
+                $("editAmount").value = intPart !== "" ? Number(intPart).toLocaleString("en-US") + decPart : current.amount;
+                updateSaveState();
+                $("newName").value = "";
+                $("newBtn").disabled = true;
+                $("newCloseBtn").disabled = true;
+                fieldsFilled = true;
+            }
+            document.querySelectorAll(".currencyCodeLabel").forEach(el => el.textContent = activeCurr);
+            $("newCloseBtn").style.display = (isReached(data) && queue.length === 0) ? "" : "none";
+            $("newCloseBtn").disabled = $("newName").value.trim() === "";
+            renderQueue(queue, open, data.goalNumber, current, activeCurr);
+            const list = $("closedList"), openClosedIds = new Set([...list.querySelectorAll("details[open]")].map(b => b.dataset.goalId));
+            list.replaceChildren();
+            if (!closed.length) {
+                $("closedStatus").textContent = " None yet...";
+            } else {
+                $("closedStatus").textContent = "";
+                [...closed].reverse().forEach((g, i) => {
+                    const box = el("details");
+                    box.dataset.goalId = g.id;
+                    if (openClosedIds.has(String(g.id))) box.open = true;
+                    box.appendChild(el("summary", `${g.name} — ${money(g.total)} / ${money(g.amount)} ${activeCurr} (${g.donations.length} donations, closed ${when(g.closedAt)})`));
+                    box.appendChild(archiveDonationTable(g.donations, g, data));
+                    if (i === 0) {
+                        const btn = el("button", "Re-open this goal");
+                        btn.style.marginTop = "10px";
+                        btn.addEventListener("click", () => confirmReopen(g));
+                        box.appendChild(btn);
+                    }
+                    list.appendChild(box);
+                });
+            }
+        }
+
+        async function refresh() {
+            if (modalOpen) return;
+            try {
+                const data = await api("/api/admin/state");
+                if (!data || !data.current || !data.open) throw new Error("Invalid goal data.");
+                const spot = lastFocusSpot;
+                render(data);
+                restoreFocusSpot(spot);
+            } catch (e) {
+                say("Could not load: " + e.message, "bad");
+            }
+        }
+
+        function openModal(title, bodyNodes, okLabel, onOk) {
+          modalOpen = true;
+          $("modalTitle").textContent = title;
+          $("modalBody").replaceChildren(...bodyNodes);
+
+          // Ensure the modal footer strictly has the standard OK button and no leftover custom buttons
+          const modalButtonsDiv = document.querySelector("#overlay .buttons");
+          const okBtn = el("button", okLabel, "primary");
+          okBtn.id = "modalOk";
+          okBtn.style.cssText = "";
+          modalButtonsDiv.replaceChildren(okBtn);
+
+          okBtn.disabled = false;
+          modalBack = null;
+          $("modalBack").style.display = "none";
+          showOverlay($("overlay"));
+          const run = modalRun = action => async () => {
+              okBtn.disabled = true;
+              try { closeModal(); await action(); } catch (e) { closeModal(); say(e.message, "bad"); }
+              await refresh();
+          };
+          okBtn.onclick = run(onOk);
+      }
+
+        async function cancelModal() {
+            if (!modalOpen) return;
+            closeModal();
+            say("Cancelled.", "ok");
+            await refresh();
+        }
+
+        $("modalClose").addEventListener("click", cancelModal);
+
+        function openModalWithBack(onBack, title, bodyNodes, okLabel, onOk) {
+            openModal(title, bodyNodes, okLabel, onOk);
+            if (typeof onBack !== "function") return;
+            modalBack = onBack;
+            $("modalBack").style.display = "";
+        }
+
+        $("modalBack").addEventListener("click", () => {
+            if (!modalOpen || typeof modalBack !== "function") return;
+            const go = modalBack;
+            closeModal();
+            go();
+        });
+
+        $("addSourceBtn").addEventListener("click", () => {
+            if (modalOpen) return;
+            const makeField = (lbl, attrs) => {
+                const w = document.createElement("label");
+                w.appendChild(document.createTextNode(lbl));
+                const i = document.createElement("input");
+                for (const [k, v] of Object.entries(attrs)) i.setAttribute(k, v);
+                w.appendChild(i);
+                return { w, i };
+            };
+            const n = makeField("Source Name (required)", { maxlength: "30", placeholder: "Enter Name", autocomplete: "off" });
+            const u = makeField("API link (required)", { placeholder: "https://...", autocomplete: "off" });
+            const t = makeField("Token / API key", { type: "password", placeholder: "Paste Token", autocomplete: "off" });
+            const c = makeField("Currency", { maxlength: "3", placeholder: "CAD", autocomplete: "off" });
+            const fields = el("div", null, "addSourceFields");
+            [n, u, t, c].forEach(f => fields.appendChild(f.w));
+            const tip = el("p", "THIS FEATURE IS UNTESTED", "muted"), problem = el("p", "", "addSourceProblem");
+            openModal("Add Donation Source", [fields, tip, problem], "ADD", async () => {});
+            const okBtn = $("modalOk"), updateOk = () => { okBtn.disabled = n.i.value.trim() === "" || u.i.value.trim() === ""; };
+            updateOk();
+            [n, u, t, c].forEach(f => {
+                f.i.addEventListener("input", () => { problem.textContent = ""; updateOk(); });
+                f.i.addEventListener("keydown", e => { if (e.key === "Enter" && !okBtn.disabled) { e.preventDefault(); okBtn.click(); } });
+            });
+            okBtn.onclick = async () => {
+                okBtn.disabled = true;
+                problem.textContent = "Testing link...";
+                try {
+                    const res = await api("/api/admin/add-source", { method: "POST", body: JSON.stringify({ name: n.i.value, url: u.i.value, token: t.i.value, currency: c.i.value }) });
+                    closeModal();
+                    say(`${res.name} added (${res.count} donations).`, "ok");
+                    await refresh();
+                } catch (e) {
+                    problem.textContent = e.message;
+                    updateOk();
+                }
+            };
+            n.i.focus();
+        });
+
+        function closeModal() {
+            modalBack = null;
+            $("modalBack").style.display = "none";
+            modalOpen = false;
+            $("modalOk").disabled = false;
+            hideOverlay($("overlay"));
+        }
+
+        function updateSaveState() {
+            const rawVal = $("editAmount").value.replace(/,/g, "");
+            $("saveBtn").disabled = $("editName").value.trim() === "" || !(Number(rawVal) > 0);
+        }
+
+        $("editName").addEventListener("input", updateSaveState);
+        $("editAmount").addEventListener("input", updateSaveState);
+
+        $("saveBtn").addEventListener("click", async () => {
+            try {
+                await api("/api/admin/set-goal", { method: "POST", body: JSON.stringify({ name: $("editName").value, amount: $("editAmount").value.replace(/,/g, "") }) });
+                say("Saved.", "ok");
+                await refresh();
+            } catch (e) {
+                say(e.message, "bad");
+            }
+        });
+
+        $("closeGoalBtn").addEventListener("click", async () => {
+            await refresh();
+            if (!latest) return;
+            const { current } = latest, queue = latest.queue || [];
+            if (!isReached(latest)) { say("Goal not reached yet.", "bad"); return; }
+            if (!queue.length) { say("No goal in queue. Type under Add Goal.", "bad"); $("newName").focus(); return; }
+            const next = queue[0];
+            
+            openModal("Close Current Goal?", [
+                el("p", `Close "${current.name}"?`),
+                el("p", `Next: "${next.name}" (${money(next.amount)} CAD)!`, "muted")
+            ], closeHasOverflow() ? "CONTINUE" : "YES", async () => {
+                await confirmCloseAndStart(next.name, next.amount, next.id, null, !closeHasOverflow(), () => $("closeGoalBtn").click());
+            });
+        });
+
+        function closeHasOverflow() {
+            if (!latest) return false;
+            const { current, open } = latest, chosen = open.donations.filter(d => d.included !== false);
+            let running = 0;
+            for (let i = 0; i < chosen.length; i++) {
+                running += Number(chosen[i].amountCAD);
+                if (running + 0.005 >= current.amount) return i < chosen.length - 1;
+            }
+            return false;
+        }
+
+        async function confirmCloseAndStart(newName, newAmount, queueId, onDone, alreadyConfirmed, goBack) {
+            const openModal = (...args) => openModalWithBack(goBack, ...args);
+            await refresh();
+            if (!latest) return;
+            const { current, open } = latest;
+            const activeCurr = latest?.targetCurrency || "CAD";
+            if (!isReached(latest)) { say("Goal not reached yet.", "bad"); return; }
+            const chosen = open.donations.filter(d => d.included !== false);
+            if (!chosen.length) { say("No included donations.", "bad"); return; }
+            if (open.failed.length) { say(open.failed.join(", ") + " could not be reached.", "bad"); return; }
+            let running = 0, triggerIndex = -1;
+            for (let i = 0; i < chosen.length; i++) {
+                running += Number(chosen[i].amountCAD);
+                if (running + 0.005 >= current.amount) { triggerIndex = i; break; }
+            }
+            const reachedIndex = triggerIndex >= 0 ? triggerIndex : chosen.length - 1, overflow = chosen.slice(reachedIndex + 1);
+            const closeWith = async list => {
+                await api("/api/admin/new-goal", { method: "POST", body: JSON.stringify({ name: newName, amount: newAmount, ids: list.map(d => d.id), queueId: queueId || null }) });
+                if (onDone) onDone();
+                fieldsFilled = false;
+            };
+            if (!overflow.length) {
+                if (alreadyConfirmed) {
+                    try { await closeWith(chosen); say(`"${current.name}" closed. "${newName}" started.`, "ok"); } catch (e) { say(e.message, "bad"); }
+                    await refresh();
+                    return;
+                }
+                openModal("Thanks", [
+                    el("p", `"${current.name}" reached target.`),
+                    el("p", "No donations after target.", "muted"),
+                    el("p", `YES will close and start "${newName}".`, "muted")
+                ], "YES", async () => {
+                    await closeWith(chosen);
+                    say(`"${current.name}" closed.`, "ok");
+                });
+                return;
+            }
+            const titleLine = el("div", null, "donorSelectLine"), donorSelect = document.createElement("select");
+            donorSelect.className = "donorSelect";
+            donorSelect.setAttribute("aria-label", "Select donor");
+            const allOpt = document.createElement("option");
+            allOpt.value = "all";
+            allOpt.textContent = "ALL";
+            donorSelect.appendChild(allOpt);
+            chosen.forEach((d, i) => {
+                const opt = document.createElement("option");
+                opt.value = String(i);
+                opt.textContent = `${d.name} — ${money(d.displayAmount !== undefined ? d.displayAmount : d.amountCAD)} ${activeCurr}`;
+                donorSelect.appendChild(opt);
+            });
+            donorSelect.value = "all";
+            titleLine.appendChild(donorSelect);
+            const reachedWrap = el("div", null, "donationReview"), overflowWrap = el("div", null, "donationReview"), explanation = el("p", null, "muted");
+            explanation.style.cssText = "white-space: pre-line; padding: 0 25px;";
+            const getSelection = () => {
+                if (donorSelect.value === "all") return { all: true, reached: chosen, overflow: [] };
+                const idx = Number(donorSelect.value);
+                return { all: false, reached: chosen.slice(0, idx + 1), overflow: chosen.slice(idx + 1) };
+            };
+            const updateReview = () => {
+                const { all, reached, overflow } = getSelection(), overTotal = overflow.reduce((s, d) => s + Number(d.displayAmount !== undefined ? d.displayAmount : d.amountCAD), 0);
+                reachedWrap.replaceChildren(donationTable(reached, activeCurr));
+                overflowWrap.replaceChildren();
+                if (overflow.length) overflowWrap.appendChild(donationTable(overflow, activeCurr));
+                
+                // Updated explanation text to include current goal, new goal, and active currency
+                explanation.textContent = (all || overflow.length === 0) 
+                    ? `Close "${current.name}" and start "${newName}" with 0 ${activeCurr}?` 
+                    : `Close "${current.name}" and start "${newName}" with ${money(overTotal)} ${activeCurr}?`;
+            };
+            const applyButtons = () => {
+                const { all, overflow } = getSelection(), okBtn = $("modalOk");
+                okBtn.textContent = "YES";
+                if (all || overflow.length === 0) {
+                    okBtn.onclick = modalRun(async () => {
+                        try { await closeWith(chosen); say(`Closed with all donations.`, "ok"); await refresh(); } catch (e) { say(e.message, "bad"); }
+                    });
+                    return;
+                }
+                okBtn.onclick = modalRun(async () => {
+                    try { await closeWith(reached); say(`Closed. "${newName}" started with later donations.`, "ok"); await refresh(); } catch (e) { say(e.message, "bad"); }
+                });
+            };
+            donorSelect.addEventListener("change", () => { updateReview(); applyButtons(); });
+            updateReview();
+            openModal("Thanks to", [titleLine, reachedWrap, overflowWrap, explanation], "YES", async () => {});
+            applyButtons();
+        }
+
+        $("newName").addEventListener("input", () => {
+            const empty = $("newName").value.trim() === "";
+            $("newBtn").disabled = empty;
+            $("newCloseBtn").disabled = empty;
+        });
+
+        $("newBtn").addEventListener("click", async () => {
+            await refresh();
+            if (!latest) return;
+            const name = $("newName").value.trim(), amount = Number($("newAmount").value.replace(/,/g, ""));
+            if (!name) { say("Name required.", "bad"); return; }
+            if (!(amount > 0)) { say("Amount must be > 0.", "bad"); return; }
+            try {
+                await api("/api/admin/queue-add", { method: "POST", body: JSON.stringify({ name, amount }) });
+                $("newName").value = "";
+                $("newAmount").value = "100";
+                $("newBtn").disabled = true;
+                $("newCloseBtn").disabled = true;
+                say(`"${name}" added to queue.`, "ok");
+                await refresh();
+            } catch (e) {
+                say(e.message, "bad");
+                await refresh();
+            }
+        });
+
+        $("newCloseBtn").addEventListener("click", async () => {
+            await refresh();
+            if (!latest) return;
+            const name = $("newName").value.trim(), amount = Number($("newAmount").value.replace(/,/g, ""));
+            if (!name) { say("Name required.", "bad"); return; }
+            if (!(amount > 0)) { say("Amount > 0 required.", "bad"); return; }
+            if (!isReached(latest)) { say("Goal not reached yet.", "bad"); return; }
+            const clearForm = () => { $("newName").value = ""; $("newBtn").disabled = true; $("newCloseBtn").disabled = true; };
+            await confirmCloseAndStart(name, amount, null, clearForm);
+        });
+
+        function confirmSwap(item) {
+            openModal(`Set "${item.name}" as Current?`, [el("p", `Current goal will move into queue.`, "muted")], "YES", async () => {
+                await api("/api/admin/swap-goal", { method: "POST", body: JSON.stringify({ id: item.id }) });
+                fieldsFilled = false;
+                say("Moved to current.", "ok");
+            });
+        }
+
+        async function removeFromQueue(item) {
+            const hasDonations = (latest?.queueDonations?.[item.id] || []).length > 0;
+            openModal(hasDonations ? "Are You Sure?" : "Confirm Deletion?", [el("p", hasDonations ? "Donations will return to Current goal." : `Delete "${item.name}"?`, "muted")], "YES", async () => {
+                await api("/api/admin/queue-remove", { method: "POST", body: JSON.stringify({ id: item.id }) });
+                say(`Deleted "${item.name}".`, "ok");
+            });
+        }
+
+        function confirmReopen(goal) {
+            openModal(`Re-open "${goal.name}"`, [el("p", `Re-open "${goal.name}"?`), el("p", `Its donations count again.`, "muted")], "YES", async () => {
+                await api("/api/admin/reopen", { method: "POST", body: "{}" });
+                fieldsFilled = false;
+                say(`"${goal.name}" re-opened.`, "ok");
+            });
+        }
+
+        const OV_HEX = /^#[0-9a-fA-F]{6}$/;
+
+        $("editOverlayBtn").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (modalOpen) return;
+            let look, namesLook = {};
+            try {
+                const res = await fetch("/api/style?t=" + Date.now(), { cache: "no-store" });
+                if (!res.ok) throw new Error("Server is old version.");
+                const data = await res.json();
+                look = data.goal;
+                namesLook = data.names || {};
+                if (!look) throw new Error("No overlay settings.");
+            } catch (e) {
+                say(e.message, "bad");
+                return;
+            }
+            if (modalOpen) return;
+            const makeColor = (lbl, val) => {
+                const w = el("label", lbl);
+                const wrapper = el("div", null, "hex-input-wrapper");
+                const prefix = el("span", "#", "hex-prefix");
+                const i = el("input");
+                i.type = "text";
+                i.maxLength = 6;
+                i.autocomplete = "off";
+                i.placeholder = "000000";
+                i.value = (val || "#000000").replace("#", "").toUpperCase();
+                wrapper.append(prefix, i);
+                const swatch = el("span", null, "lookSwatch");
+                w.append(wrapper, swatch);
+                return { wrap: w, input: i, swatch };
+            };
+            const makeNumber = (lbl, val, min, max) => {
+                const w = el("label", lbl + " (px)"), i = el("input");
+                i.type = "number";
+                i.min = min;
+                i.max = max;
+                i.step = "1";
+                i.value = val;
+                w.appendChild(i);
+                return { wrap: w, input: i, min, max };
+            };
+            const fillField = makeColor("Bar Fill Color", look.fillColor), backField = makeColor("Bar Background Color", look.barColor);
+            const heightField = makeNumber("Bar Height", look.barHeight, 10, 120), widthField = makeNumber("Bar Width", look.width, 200, 1800);
+            const colorFields = [fillField, backField], numberFields = [heightField, widthField];
+            const grid = el("div", null, "lookGrid");
+            [fillField, backField, heightField, widthField].forEach(f => grid.appendChild(f.wrap));
+            
+            const makeToggleBtn = initial => {
+                let state = Boolean(initial);
+                const btn = el("button", state ? "ON" : "OFF", "sourceStatusButton" + (state ? " sourceStatusOn" : ""));
+                btn.type = "button";
+                btn.addEventListener("click", () => { state = !state; btn.textContent = state ? "ON" : "OFF"; btn.classList.toggle("sourceStatusOn", state); });
+                return { btn, get value() { return state; } };
+            };
+
+            const rainbowToggle = makeToggleBtn(look.rainbow !== false);
+            const rainbowRow = el("div");
+            rainbowRow.style.cssText = "margin-top: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;";
+            
+            // "Rainbow when Goal Reached: ON/OFF" as a button wrapper
+            const rainbowButtonWrapper = el("div");
+            rainbowButtonWrapper.style.cssText = "display: flex; align-items: center; justify-content: center; gap: 10px;";
+            const rainbowLabelSpan = el("span", "Rainbow when Goal Reached:");
+            rainbowLabelSpan.style.fontSize = "11px";
+            rainbowButtonWrapper.append(rainbowLabelSpan, rainbowToggle.btn);
+            rainbowRow.appendChild(rainbowButtonWrapper);
+
+            const makeUrlRow = (lbl, url, btn) => {
+                const w = el("label", lbl), line = el("div");
+                line.style.cssText = "display: flex; align-items: center; gap: 8px;";
+                const i = el("input");
+                i.type = "text";
+                i.readOnly = true;
+                i.value = url;
+                i.style.cssText = "flex: 1; min-width: 0;";
+                i.addEventListener("focus", () => i.select());
+                const copy = el("button", "COPY");
+                copy.type = "button";
+                copy.addEventListener("click", async () => {
+                    try { await navigator.clipboard.writeText(url); } catch (e) { i.focus(); i.select(); document.execCommand("copy"); }
+                    copy.textContent = "COPIED";
+                    setTimeout(() => copy.textContent = "COPY", 1500);
+                });
+                line.append(btn, i, copy);
+                w.appendChild(line);
+                return w;
+            };
+
+            const goalToggle = makeToggleBtn(look.enabled !== false), namesToggle = makeToggleBtn(namesLook.enabled !== false);
+            
+            // Progress Bar section with its url bar AND the bar fill controls right after it
+            const progressBarSection = el("div");
+            progressBarSection.style.cssText = "margin-top: 10px; display: flex; flex-direction: column; gap: 10px; width: 100%;";
+            progressBarSection.appendChild(el("p", "Progress Bar", "muted"));
+            progressBarSection.appendChild(makeUrlRow("URL", "http://localhost:3000/", goalToggle.btn));
+            
+            // Appending bar fill/size color controls right after the Progress Bar URL controls
+            progressBarSection.appendChild(grid);
+
+            // Donor Names section with its url bar
+            const donorNamesSection = el("div");
+            donorNamesSection.style.cssText = "margin-top: 15px; display: flex; flex-direction: column; gap: 10px; width: 100%;";
+            donorNamesSection.appendChild(el("p", "Donor Names", "muted"));
+            donorNamesSection.appendChild(makeUrlRow("URL", "http://localhost:3001/", namesToggle.btn));
+
+            const urlsContainer = el("div");
+            urlsContainer.style.cssText = "margin-top: 10px; display: flex; flex-direction: column; gap: 10px; width: 100%;";
+            urlsContainer.append(progressBarSection, donorNamesSection);
+
+            const modalButtonsDiv = document.querySelector("#overlay .buttons");
+            modalButtonsDiv.replaceChildren();
+            
+            const resetBtn = el("button", "Reset");
+            resetBtn.type = "button";
+            resetBtn.className = "";
+            resetBtn.style.cssText = "width: 120px; height: 45px; flex: 0 0 120px; box-sizing: border-box; border: 2px solid var(--line); box-shadow: none;";
+            resetBtn.addEventListener("click", () => {
+                modalButtonsDiv.replaceChildren(saveBtn);
+                    openModalWithBack(() => $("editOverlayBtn").click(), "Reset Look", [el("p", "Reset colors and sizes?")], "Reset", async () => {
+                    await api("/api/admin/set-style", { method: "POST", body: JSON.stringify({ reset: true }) });
+                    say("Look reset.", "ok");
+                });
+            });
+
+            const saveBtn = el("button", "Save");
+            saveBtn.type = "button";
+            saveBtn.id = "modalOk";
+            saveBtn.className = "primary";
+            saveBtn.style.cssText = "width: 120px; height: 45px; flex: 0 0 120px; box-sizing: border-box; border: 2px solid var(--line); box-shadow: none;";
+            
+            modalButtonsDiv.append(resetBtn, saveBtn);
+
+            const check = () => {
+                let ok = true;
+                for (const f of colorFields) {
+                    const fullVal = "#" + f.input.value.trim();
+                    const good = OV_HEX.test(fullVal);
+                    f.input.classList.toggle("lookBad", !good);
+                    f.swatch.style.background = good ? fullVal : "transparent";
+                    if (!good) ok = false;
+                }
+                for (const f of numberFields) {
+                    const n = Number(f.input.value.trim()), good = f.input.value.trim() !== "" && Number.isFinite(n) && n >= f.min && n <= f.max;
+                    f.input.classList.toggle("lookBad", !good);
+                    if (!good) ok = false;
+                }
+                saveBtn.disabled = !ok;
+            };
+
+            openModal("Edit Overlays", [urlsContainer, rainbowRow], "SAVE", async () => {
+                await api("/api/admin/set-style", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        style: {
+                            goal: {
+                                fillColor: "#" + fillField.input.value.trim().toUpperCase(),
+                                barColor: "#" + backField.input.value.trim().toUpperCase(),
+                                barHeight: Number(heightField.input.value),
+                                width: Number(widthField.input.value),
+                                rainbow: rainbowToggle.value,
+                                enabled: goalToggle.value
+                            },
+                            names: { enabled: namesToggle.value }
+                        }
+                    })
+                });
+                say("Overlay saved.", "ok");
+            });
+
+            // Re-assign saveBtn functionality correctly after openModal overwrites #modalOk references
+            const actualOkBtn = $("modalOk");
+            actualOkBtn.textContent = "Save";
+            actualOkBtn.className = "primary";
+            actualOkBtn.style.cssText = "width: 120px; height: 45px; flex: 0 0 120px; box-sizing: border-box; border: 2px solid var(--line); box-shadow: none;";
+
+            [...colorFields, ...numberFields].forEach(f => {
+                f.input.addEventListener("input", check);
+                f.input.addEventListener("keydown", e => { if (e.key === "Enter" && !actualOkBtn.disabled) { e.preventDefault(); actualOkBtn.click(); } });
+            });
+            check();
+            fillField.input.focus();
+        });
+
+        document.querySelectorAll(".amount-stepper button").forEach(b => {
+            b.addEventListener("click", () => {
+                const input = b.closest(".amount-input-wrapper").querySelector("input"), step = Number(input.step) || 1, dir = Number(b.dataset.step);
+                const cur = Number(input.value) || 0, next = Math.max(Number(input.min) || 0, cur + dir * step);
+                input.value = Number(next.toFixed(10)).toString();
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+        });
+
+        // Auto-format amount inputs with commas as the user types (using event delegation)
+        document.addEventListener("input", e => {
+            const input = e.target.closest("input.amount");
+            if (!input || input.dataset.formatting) return;
+            
+            let val = input.value.replace(/[^0-9.]/g, "");
+            const parts = val.split(".");
+            if (parts.length > 2) {
+                val = parts[0] + "." + parts.slice(1).join("");
+            }
+            
+            if (val !== "" && !isNaN(val)) {
+                const integerPart = parts[0];
+                const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+                
+                if (integerPart !== "") {
+                    const formattedInteger = Number(integerPart).toLocaleString("en-US");
+                    const newVal = formattedInteger + decimalPart;
+                    if (input.value !== newVal) {
+                        input.dataset.formatting = "1";
+                        input.value = newVal;
+                        delete input.dataset.formatting;
+                        input.dispatchEvent(new Event("input", { bubbles: true }));
+                    }
+                }
+            } else {
+                input.value = val;
+            }
+        });
+
+        refresh();
+        setInterval(() => { if (!$("queueList").querySelector("input[data-dirty='1']")) refresh(); }, 15000);
+    </script>
+</body>
+</html>

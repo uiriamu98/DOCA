@@ -1,0 +1,1773 @@
+/* Themes */
+:root {
+    --bg:#000;
+    --card:#010101;
+    --text:#fff;
+    --muted:#989898;
+    --line:#0e0e0e;
+    --accent:#880808;
+    --ok:#00FF41;
+    --bad:#FF69B4;
+    --bar-bg:#440404;
+}
+
+:root[data-theme="spring"] {
+    --bg:#F5EFE6;
+    --card:#FFFAF4;
+    --text:#403B35;
+    --muted:#897D76;
+    --line:#E6D6CA;
+    --accent:#A66F78;
+    --ok:#71865F;
+    --bad:#C46F78;
+    --bar-bg:#E9D9C9;
+}
+
+:root[data-theme="summer"] {
+    --bg:#6ed8f2;
+    --card:#FFF0C2;
+    --text:#16445A;
+    --muted:#12161d;
+    --line:#d7faf7;
+    --accent:#FFB92E;
+    --ok:#36A852;
+    --bad:#E85B4B;
+    --bar-bg:#087FA8;
+}
+
+:root[data-theme="autumn"] {
+    --bg:#24150F;
+    --card:#3A241A;
+    --text:#e8e8e8;
+    --muted:#705e51;
+    --line:#846a5e;
+    --accent:#a67d3a;
+    --ok:#364e2b;
+    --bad:#D56B45;
+    --bar-bg:#7e2f0d;
+}
+
+:root[data-theme="winter"] {
+    --bg:#EAF4FC;
+    --card:#eef3f4;
+    --text:#142B45;
+    --muted:#607D98;
+    --line:#C5DCEC;
+    --accent:#4A9FD8;
+    --ok:#25865A;
+    --bad:#D95775;
+    --bar-bg:#D2E6F5;
+}
+
+:root[data-theme="mono-light"] {
+    --bg:#f7f7f7;
+    --card:#ffffff;
+    --text:#171717;
+    --muted:#555555;
+    --line:#484848;
+    --accent:#333333;
+    --ok:#222222;
+    --bad:#555555;
+    --bar-bg:#dedede;
+}
+
+:root[data-theme="mono-dark"] {
+    --bg:#080808;
+    --card:#171717;
+    --text:#f5f5f5;
+    --muted:#aaaaaa;
+    --line:#484848;
+    --accent:#dddddd;
+    --ok:#eeeeee;
+    --bad:#aaaaaa;
+    --bar-bg:#383838;
+}
+
+/* Global */
+
+* { box-sizing:border-box; }
+
+html {
+    scroll-padding-top:48px;
+}
+
+body {
+    margin:0;
+    padding:72px 0 25px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Press Start 2P',monospace;
+    font-size:15px;
+    line-height:2;
+}
+
+main {
+    width:100%;
+    max-width:100%;
+    margin:0 auto;
+    padding:0 12px;
+}
+
+h1 { font-size:15px; }
+h2 { font-size:25px; margin:0 0 12px; }
+h2.goalTitle { text-align:center; }
+
+.muted {
+    color:var(--muted);
+    font-size:12px;
+    margin-left:0;
+}
+
+details.panel > .muted {
+    margin-left:32px;
+}
+
+section {
+    background:var(--card);
+    border:5px solid var(--line);
+    padding:15px;
+    margin-bottom:5px;
+    width:100%;
+    height: 125%;
+    border-radius: 15px;
+}
+
+/* Top menu */
+
+.pageMenu {
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:36px;
+    padding:3px 12px 0;
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    background:var(--bg);
+    border-bottom:2px solid var(--accent);
+    margin:0;
+    z-index:99;
+}
+
+.pageMenuButton {
+    flex:0 0 auto;
+    white-space:nowrap;
+    height:30px;
+    font-family:inherit;
+    font-size:12.5px;
+    color:var(--text);
+    background:var(--bg);
+    border:1px solid var(--accent);
+    padding:5px 10px;
+    cursor:pointer;
+}
+
+.pageMenuButton:hover,
+.pageMenuButton:focus,
+button.pageMenuButton:not(:disabled):hover {
+    background:var(--accent);
+    outline:none;
+}
+
+.menuGroup {
+    position:relative;
+}
+
+.pageMenuContent,
+.settingsContent {
+    display:none;
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;
+    width:max-content;
+    min-width:0;
+    margin:0;
+    padding:6px;
+    background:var(--card);
+    border:1px solid var(--accent);
+    z-index:1000;
+}
+
+.pageMenu.open .pageMenuContent,
+.pageMenu.settingsOpen .settingsContent {
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.pageMenuContent a,
+.settingsContent button {
+    display:block;
+    width:100%;
+    box-sizing:border-box;
+    margin:0;
+    padding:8px 6px;
+    white-space:nowrap;
+    text-align:left;
+    font-family:inherit;
+    font-size:10px;
+    line-height:normal;
+    background:var(--bg);
+    color:var(--text);
+    border:1px solid var(--line);
+    text-decoration:none;
+    cursor:pointer;
+}
+
+.pageMenuContent a:hover,
+.settingsContent button:hover {
+    background:var(--accent);
+    color:var(--text);
+    border-color:var(--accent);
+    outline:none;
+}
+
+/* Forms and buttons */
+
+label {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:12px;
+    color:var(--muted);
+}
+
+label:has(input.name) {
+    flex:1;
+    min-width:100px;
+}
+
+input {
+    height:42px;
+    padding:8px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--text);
+    font-family:inherit;
+    font-size:12px;
+}
+
+input.name,
+input.amount {
+    width:100%;
+}
+
+button {
+    padding:10px 15px;
+    border:2px solid var(--line);
+    background:var(--accent);
+    color:var(--text);
+    font-family:inherit;
+    font-size:9px;
+    cursor:pointer;
+}
+
+button.primary {
+    background:var(--accent);
+    border-color:var(--accent);
+}
+
+button:not(:disabled):hover {
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+}
+
+button:disabled {
+    opacity:.4;
+    cursor:not-allowed;
+}
+
+.row {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    padding-left:12px;
+    padding-right:12px;
+    align-items:end;
+}
+
+@media(max-width: 600px) {
+    #barAmount {
+        font-size: 14px; /* Shrinks the text down on phones */
+    }
+}
+
+.row > label,
+.row > .rowButtons,
+.row > .muted {
+    margin-left:0;
+    min-width:0;
+}
+
+.rowButtons {
+    display:flex;
+    flex-direction:row;
+    gap:8px;
+    height:42px;
+    align-items:stretch;
+    min-width:0;
+}
+
+.rowButtons button {
+    flex:1 1 0;
+    min-width:0;
+    height:42px;
+    padding:0 5px;
+    line-height:1.5;
+    overflow-wrap:anywhere;
+}
+
+#saveBtn,
+#closeGoalBtn,
+#newBtn,
+#newCloseBtn {
+    width:100%;
+    height:42px;
+    box-sizing:border-box;
+}
+
+/* Tables and panels */
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:10px;
+    margin-top:5px;
+}
+
+table th,
+table td {
+    text-align:left !important;
+    padding:10px 8px;
+    border-bottom:1px solid var(--line);
+    border-color:color-mix(in srgb, var(--line) 25%, transparent);
+    border-right:1px solid color-mix(in srgb, var(--line) 25%, transparent);
+    word-break:break-word;
+}
+
+table th.num,
+table td.num {
+    text-align:left !important;
+}
+
+table th.checkboxCell,
+table td.checkboxCell {
+    width:65px;
+    min-width:65px;
+    white-space:nowrap;
+    text-align:left !important;
+}
+
+table th:last-child,
+table td:last-child {
+    border-right:none;
+}
+
+th {
+    color:var(--muted);
+    font-weight:normal;
+}
+
+.donationCheck {
+    width:20px;
+    height:20px;
+    accent-color:var(--ok);
+    cursor:pointer;
+    vertical-align:middle;
+}
+
+.donationRow.excluded {
+    opacity:.25;
+}
+
+.donationRow.excluded td:not(.checkboxCell) {
+    text-decoration:line-through;
+}
+
+.donationStatus {
+    display:none;
+    font-size:9px;
+    margin:0;
+    text-align:right;
+    color:var(--muted);
+}
+
+#currentDetails[open] #donationStatus {
+    display:inline;
+}
+
+details {
+    width:100%;
+    margin:0 0 12px 0;
+    border:1px solid var(--line);
+    padding:0;
+    background:var(--bg);
+}
+
+details.panel {
+    margin:0;
+    border:none;
+    background:transparent;
+}
+
+summary {
+    display:block;
+    width:100%;
+    padding:15px 12px;
+    margin:0;
+    cursor:pointer;
+    color:var(--text);
+}
+
+summary.panelSummary,
+#currentDetails > summary,
+summary.queueDonationsSummary {
+    list-style:none;
+    cursor:pointer;
+    padding:0 0 12px;
+    pointer-events:auto;
+}
+
+summary.panelSummary::-webkit-details-marker,
+#currentDetails > summary::-webkit-details-marker,
+summary.queueDonationsSummary::-webkit-details-marker,
+summary.panelSummary::marker,
+#currentDetails > summary::marker,
+summary.queueDonationsSummary::marker {
+    display:none;
+}
+
+summary.panelSummary h2 {
+    display:inline;
+    margin:0;
+}
+
+details.panel:not([open]) > summary.panelSummary .panelStatus {
+    display:none !important;
+}
+
+/* Arrow styling */
+
+summary.panelSummary .panelArrow,
+#currentDetails > summary .panelArrow,
+summary.queueDonationsSummary .panelArrow {
+    display:inline-block;
+    padding:2px 5px;
+    margin-right:8px;
+    color:var(--accent);
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+summary.panelSummary .panelArrow::before,
+#currentDetails > summary .panelArrow::before,
+summary.queueDonationsSummary .panelArrow::before {
+    content:"▼";
+}
+
+/* Collapsed arrows */
+
+details.panel:not([open]) > summary.panelSummary .panelArrow::before,
+#currentDetails:not([open]) > summary .panelArrow::before,
+details.queueDonationsDetails:not([open]) > summary .panelArrow::before {
+    content:"▶";
+}
+
+/* Hover only when the pointer is over the arrow */
+
+summary.panelSummary .panelArrow:hover {
+    background:var(--accent);
+    color:var(--bg);
+    border-color:var(--accent);
+}
+
+#currentDetails > summary .panelArrow {
+    color:var(--text);
+}
+
+#currentDetails > summary .panelArrow:hover {
+    background:var(--text);
+    color:var(--bg);
+    border-color:var(--text);
+}
+
+/* Collapsed panel spacing */
+
+details.panel:not([open]) > summary.panelSummary {
+    padding-bottom:0;
+}
+
+#currentDetails {
+    overflow-x:auto;
+}
+
+#currentDetails > table {
+    min-width:850px;
+}
+
+/* Goal queue */
+
+.queueRow {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    align-items:end;
+    gap:12px;
+    padding:0 12px;
+    margin-bottom:6px;
+    background:transparent;
+    width:100%;
+}
+
+.queueButtons {
+    display:flex;
+    gap:8px;
+    height:42px;
+    min-width:0;
+}
+
+.queueRow button {
+    flex:1 1 0;
+    min-width:0;
+    line-height:1.5;
+    overflow-wrap:anywhere;
+    margin:0;
+    padding:0 5px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--accent);
+    color:var(--text);
+}
+
+.queueDonations {
+    margin:0 12px 6px 12px;
+}
+
+.queueDonationRow {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:4px 0 4px 11px;
+    border:1px solid var(--line);
+    border-top:none;
+    background:var(--bg);
+    font-size:10px;
+}
+
+/* Progress bar */
+
+.bar {
+    position:relative;
+    width:100%;
+    height:35px;
+    background:var(--bar-bg);
+    overflow:hidden;
+    margin:12px 0;
+}
+
+#currentFill {
+    position:relative;
+    width:0%;
+    height:100%;
+    background:var(--accent);
+    transition:width .3s ease;
+    overflow:hidden;
+}
+
+#barAmount {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    font-family: inherit;
+    font-size: 21px;
+    color: var(--text);
+    text-shadow: none;
+    z-index: 2;
+    white-space: nowrap;
+    pointer-events: none;
+    max-width: 95%; /* Prevents text from overflowing the bar boundaries */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Safely truncates with '...' if it's still too wide */
+}
+
+.bar.rainbow-waiting #barAmount {
+    opacity:0;
+    transition:1s ease;
+}
+
+.bar.rainbow-waiting {
+    background-color:transparent;
+    transition:background-color .67s ease;
+}
+
+.bar.rainbow-waiting #currentFill {
+    background-color:transparent;
+    transition:width .67s ease,background-color 6.7s ease;
+}
+
+#currentFill.complete {
+    background-color:transparent;
+}
+
+#currentFill.complete::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    width:0%;
+    height:100%;
+    background:repeating-linear-gradient(
+        90deg,
+        #ff0000 0px,
+        #ff8000 50px,
+        #ffff00 100px,
+        #00ff00 150px,
+        #00ffff 200px,
+        #0080ff 250px,
+        #8000ff 300px,
+        #ff00ff 350px,
+        #ff0000 400px
+    );
+    background-size:400px 100%;
+    animation:rainbow-takeover 3.7s linear forwards,rainbow-road 6.7s linear 3.7s infinite;
+}
+
+@keyframes rainbow-takeover {
+    from { width:0%; }
+    to { width:100%; }
+}
+
+@keyframes rainbow-road {
+    from { background-position:0 0; }
+    to { background-position:400px 0; }
+}
+
+.bar:has(#currentFill.complete) #barAmount {
+    opacity:1;
+    color:var(--text);
+    text-shadow:none;
+    animation:none;
+}
+
+/* Pills and banners */
+
+.pill {
+    display:inline-block;
+    padding:6px 10px;
+    font-size:9px;
+    border:1px solid var(--line);
+    margin:0 6px 6px 0;
+}
+
+.pill.ok {
+    color:var(--ok);
+    border-color:var(--ok);
+}
+
+.pill.bad {
+    color:var(--bad);
+    border-color:var(--bad);
+}
+
+.pill.off {
+    color:var(--muted);
+    border-color:var(--muted);
+}
+
+#sources {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+    gap:6px;
+    width:100%;
+    margin:0;
+    padding:0;
+}
+
+#sources .pill {
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    text-align:center;
+    margin:0;
+    cursor:pointer;
+    transition:outline .1s ease;
+}
+
+#sources .pill:hover {
+    outline:2px solid currentColor;
+    outline-offset:2px;
+}
+
+.banner {
+    margin:6px 0;
+    font-size:12px;
+    border:.5px solid var(--line);
+}
+
+.banner.fadeOut {
+    opacity:0;
+    visibility:hidden;
+    transition:opacity 1s ease,visibility 0s linear 1s;
+}
+
+.banner.ok {
+    color:var(--ok);
+    border-color:var(--ok);
+}
+
+.banner.fadeOut.slowFade {
+    transition:opacity 2s ease,visibility 0s linear 2s;
+}
+
+.banner.bad {
+    color:var(--bad);
+    border-color:var(--bad);
+}
+
+/* Modals */
+
+.overlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:10px;
+    z-index:100;
+}
+
+.overlay.show {
+    display:flex;
+}
+
+.modalClose {
+    order:-1;
+    position:sticky;
+    top:0;
+    align-self:flex-end;
+    flex:0 0 28px;
+    width:28px;
+    height:28px;
+    margin:0 0 -28px 0;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    line-height:1;
+    z-index:5;
+}
+
+.modal {
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--accent);
+    padding:16px;
+    width:67%;
+    max-width:67%;
+    min-height:0;
+    max-height:90vh;
+    overflow:auto;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:center;
+}
+
+
+
+.modal h2 {
+    padding-left:36px;
+    padding-right:36px;
+    box-sizing:border-box;
+}
+
+.modal .buttons {
+    display:flex;
+    gap:30px;
+    justify-content:center;
+    align-items:center;
+    margin-top:20px;
+    width:100%;
+}
+
+.modal .buttons button {
+    width:120px;
+    height:45px;
+    flex:0 0 120px;
+    box-sizing:border-box;
+    border:2px solid var(--line);
+    box-shadow:none;
+}
+
+.modal #modalBody {
+    width:100%;
+}
+
+.modal #modalBody > p {
+    overflow-wrap:anywhere;
+}
+
+.modal .donorSelectLine {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:8px;
+    width:100%;
+    margin:8px 0 14px;
+    font-size:10px;
+}
+
+.donorSelect {
+    max-width:100%;
+    width:min(100%,300px);
+    min-width:0;
+    padding:7px 9px;
+    border:1px solid var(--accent);
+    background:var(--bg);
+    color:var(--text);
+    font-family:inherit;
+    font-size:9px;
+}
+
+.modal .donationReview {
+    width:100%;
+    max-height:23vh;
+    overflow:auto;
+    overflow-x:auto;
+    margin:4px 0 12px;
+}
+
+.modal .donationReview table {
+    font-size:9px;
+    min-width:650px;
+}
+
+.modal .donationReview th,
+.modal .donationReview td {
+    padding:6px 4px;
+}
+
+.modal.customThemeModal {
+    width:50%;
+    max-width:50%;
+    max-height:90vh;
+    min-height:0;
+    padding:16px;
+    overflow-y:auto;
+    text-align:left;
+    align-items:stretch;
+}
+
+.customThemeModal h2 {
+    text-align:center;
+    margin-bottom:8px;
+}
+
+.customThemeDescription {
+    color:var(--muted);
+    font-size:10px;
+    text-align:center;
+    margin:0 0 15px;
+}
+
+.customThemeFields {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    width:100%;
+}
+
+.customThemeFields label {
+    align-items:center;
+    min-width:0;
+    font-size:10px;
+    color:var(--text);
+}
+
+.customThemeFields input {
+    width:calc(14ch + 44px);
+    max-width:100%;
+    min-width:0;
+    height:42px;
+    border:1px solid var(--accent);
+    background:var(--bg);
+    color:var(--text);
+    padding:8px;
+    font-family:inherit;
+    font-size:11px;
+    text-transform:uppercase;
+    text-align:center;
+}
+
+.customThemeButtons {
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:18px;
+}
+
+.customThemeButtons button {
+    min-width:105px;
+    min-height:42px;
+}
+
+/* Dropdowns */
+
+select {
+    height:34px;
+    padding:6px 10px;
+    background:var(--bg);
+    color:var(--text);
+    border:1px solid var(--accent);
+    border-radius:0;
+    font-family:inherit;
+    font-size:10px;
+    cursor:pointer;
+}
+
+select,
+select::picker(select) {
+    appearance:base-select;
+}
+
+select::-ms-expand {
+    display:none;
+}
+
+select::picker(select) {
+    position-area:block-end span-inline-end;
+    position-try-fallbacks:none;
+    margin:0;
+    max-height:min(300px,40vh);
+    overflow-y:auto;
+    background:var(--bg);
+    border:1px solid var(--accent);
+    border-radius:0;
+    padding:0;
+}
+
+select option {
+    padding:8px 10px;
+    font-family:inherit;
+    background:var(--bg) !important;
+    color:var(--text) !important;
+}
+
+select option:hover {
+    background:var(--accent) !important;
+    color:var(--text) !important;
+}
+
+select option[hidden] {
+    display:none;
+}
+
+select option::checkmark {
+    display:none;
+}
+
+select:disabled {
+    opacity:.4;
+    cursor:not-allowed;
+}
+
+.queueDonationRow select::picker(select),
+.moveGoalSelect::picker(select) {
+    position-area:block-end span-inline-start;
+}
+
+/* Misc */
+
+#message {
+    min-height:24px;
+    position:fixed;
+    top:auto;
+    bottom:12px;
+    left:0;
+    width:100%;
+    box-sizing:border-box;
+    z-index:99999;
+    background:var(--bg);
+    padding:5px 10px;
+    text-align:left;
+    display:block;
+    pointer-events:none;
+}
+
+#message:empty {
+    display:none;
+}
+
+.bottom-signature {
+    min-height:67%;
+    width:100%;
+    display:flex;
+    justify-content:flex-end;
+    align-items:flex-end;
+    padding:12px 24px;
+    margin-bottom:34px;
+    background:transparent;
+    color:var(--muted);
+    font-size:6px;
+    letter-spacing:2px;
+    opacity:.25;
+}
+
+/* Focus */
+
+:focus-visible,
+select:focus-visible,
+.pageMenuButton:focus-visible {
+    outline:3px solid var(--text) !important;
+    outline-offset:2px;
+}
+
+.modalBack:focus-visible,
+.modalClose:focus-visible {
+    outline-offset:-4px;
+}
+
+.modalBack {
+    order:-2;
+    position:sticky;
+    top:0;
+    align-self:flex-start;
+    flex:0 0 28px;
+    width:28px;
+    height:28px;
+    margin:0 0 -28px 0;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    line-height:1;
+    z-index:5;
+}
+
+.modal:focus {
+    outline:none !important;
+}
+
+.overlay button:hover,
+.overlay input:hover,
+.overlay select:hover,
+.overlay textarea:hover {
+    outline:none !important;
+}
+
+.overlay button:focus,
+.overlay input:focus,
+.overlay select:focus,
+.overlay textarea:focus {
+    outline:3px solid var(--text) !important;
+    outline-offset:2px;
+    box-shadow:0 0 0 2px var(--accent) !important;
+}
+
+.overlay .modalBack:focus,
+.overlay .modalClose:focus {
+    outline-offset:-4px;
+    box-shadow:none !important;
+}
+
+/* Mobile */
+
+@media(max-width:600px) {
+    body {
+        line-height:2.5;
+    }
+
+    main {
+        width:100%;
+        padding:0 12px;
+    }
+
+    h2 {
+        font-size:15px;
+        line-height:2.5;
+    }
+
+    label {
+        line-height:2.5;
+    }
+
+    button {
+        line-height:2;
+    }
+
+    table {
+        font-size:10px;
+        line-height:2.5;
+    }
+
+    th,
+    td {
+        padding:8px 4px;
+        line-height:2.5;
+    }
+
+    .row,
+    .queueRow {
+        grid-template-columns:1fr;
+    }
+
+    .modal,
+    .modal.customThemeModal {
+        width:98%;
+        max-width:98%;
+        padding:5px;
+    }
+
+    .modal .buttons {
+        gap:12px;
+    }
+
+    .modal .buttons button {
+        width:110px;
+        flex-basis:110px;
+    }
+}
+
+@media(max-width:450px) {
+    .customThemeFields {
+        grid-template-columns:1fr;
+    }
+}
+
+/* Move to Goal dropdown — inverted arrow on hover/focus/selection */
+/* Temporary hover highlight */
+.moveGoalSelect:hover {
+    background-color:var(--accent);
+    color:var(--bg);
+    border-color:var(--accent);
+}
+
+/* Keyboard navigation only */
+.moveGoalSelect:focus-visible {
+    outline:3px solid var(--text);
+    outline-offset:2px;
+}
+
+/* Themed scrollbars */
+* {
+    scrollbar-color:var(--accent) var(--bg);
+    scrollbar-width:thin;
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+    width:10px;
+}
+
+::-webkit-scrollbar-track {
+    background:var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background:var(--accent);
+    border-radius:0;
+    border:2px solid var(--bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background:var(--text);
+}
+
+/* Mono-light: dark buttons with white text */
+
+:root[data-theme="mono-light"] button:not(.pageMenuButton) {
+    background:#333333;
+    color:#ffffff;
+    border-color:#333333;
+}
+
+/* Mono-dark: light buttons with dark text */
+
+:root[data-theme="mono-dark"] button:not(.pageMenuButton) {
+    background:#eeeeee;
+    color:#171717;
+    border-color:#eeeeee;
+}
+
+/* Mono-light hover */
+
+:root[data-theme="mono-light"] button:not(.pageMenuButton):not(:disabled):hover {
+    background:#000000;
+    color:#ffffff;
+    border-color:#000000;
+}
+
+/* Mono-dark hover */
+
+:root[data-theme="mono-dark"] button:not(.pageMenuButton):not(:disabled):hover {
+    background:#ffffff;
+    color:#000000;
+    border-color:#ffffff;
+}
+
+/* Top menu buttons — preserve their original background */
+
+:root[data-theme="mono-light"] .pageMenuButton {
+    background:var(--bg);
+    color:#171717;
+    border-color:#333333;
+}
+
+:root[data-theme="mono-dark"] .pageMenuButton {
+    background:var(--bg);
+    color:#f5f5f5;
+    border-color:#dddddd;
+}
+
+/* Top menu hover */
+
+:root[data-theme="mono-light"] .pageMenuButton:hover {
+    background:#000000;
+    color:#ffffff;
+    border-color:#000000;
+}
+
+:root[data-theme="mono-dark"] .pageMenuButton:hover {
+    background:#ffffff;
+    color:#000000;
+    border-color:#ffffff;
+}
+
+/* Dropdown menu links */
+
+:root[data-theme="mono-light"] .pageMenuContent a {
+    background:#ffffff;
+    color:#171717;
+    border-color:#d0d0d0;
+}
+
+:root[data-theme="mono-dark"] .pageMenuContent a {
+    background:#171717;
+    color:#f5f5f5;
+    border-color:#484848;
+}
+
+/* Dropdown menu hover */
+
+:root[data-theme="mono-light"] .pageMenuContent a:hover,
+:root[data-theme="mono-light"] .settingsContent button:hover {
+    background:#000000;
+    color:#ffffff;
+    border-color:#000000;
+}
+
+:root[data-theme="mono-dark"] .pageMenuContent a:hover,
+:root[data-theme="mono-dark"] .settingsContent button:hover {
+    background:#ffffff;
+    color:#000000;
+    border-color:#ffffff;
+}
+
+/* Disabled buttons */
+
+:root[data-theme="mono-light"] button:disabled {
+    color:#ffffff;
+}
+
+:root[data-theme="mono-dark"] button:disabled {
+    color:#171717;
+}
+
+button,
+select,
+.pageMenuButton,
+.pageMenuContent,
+.settingsContent,
+#sources .pill,
+summary,
+.queueButtons,
+.queueRow button,
+.modalClose {
+    -webkit-user-select:none;
+    user-select:none;
+}
+
+/* No mouse highlighting anywhere, except inside text boxes */
+
+* {
+    -webkit-user-select:none;
+    user-select:none;
+}
+
+input,
+textarea {
+    -webkit-user-select:text;
+    user-select:text;
+}
+
+/* Add Donation Source popup */
+
+.addSourceFields {
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    width:100%;
+    padding:0 25px;
+    box-sizing:border-box;
+    text-align:left;
+}
+
+.addSourceFields input {
+    width:100%;
+    box-sizing:border-box;
+}
+
+.addSourceProblem {
+    color:var(--bad);
+    min-height:1em;
+    padding:0 25px;
+    white-space:pre-line;
+}
+
+/* Remove Donation Source popup */
+
+.removeSourceList {
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    width:100%;
+    padding:0 25px;
+    box-sizing:border-box;
+    text-align:left;
+}
+
+.removeSourceRow {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border:1px solid var(--line);
+    padding:8px 12px;
+}
+
+.removeSourceName {
+    flex:1 1 auto;
+    min-width:0;
+    overflow-wrap:anywhere;
+}
+
+.removeSourceX {
+    flex:0 0 28px;
+    width:28px;
+    height:28px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    line-height:1;
+}
+
+
+
+/* Donation source ON/OFF status buttons */
+
+.sourceStatusButton {
+    min-width: 75px;
+    height: 28px;
+    padding: 0 8px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    font-family: inherit;
+    font-size: 9px;
+}
+
+.sourceStatusButton.sourceStatusOn {
+    background: var(--ok);
+    color: var(--bg);
+    border-color: var(--ok);
+}
+
+.sourceStatusButton:disabled {
+    opacity: 1;
+    cursor: default;
+}
+
+.sourceStatusButton:not(:disabled):hover {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.removeSourceRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.removeSourceName {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Let source action buttons size themselves to their labels */
+
+.removeSourceRow .rowButtons {
+    display: flex;
+    flex: 0 0 auto;
+    width: auto;
+    gap: 8px;
+}
+
+.removeSourceRow .removeSourceX,
+.removeSourceRow .sourceStatusButton {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    white-space: nowrap;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.removeSourceRow .sourceStatusButton {
+    min-width: 0;
+    width: auto;
+    height: auto;
+    padding: 2px 7px;
+    line-height: 1.2;
+}
+
+.removeSourceRow .rowButtons {
+    height: auto;
+    align-items: center;
+    gap: 5px;
+}
+
+.removeSourceRow .rowButtons button {
+    height: auto;
+    flex: 0 0 auto;
+    width: auto;
+    padding: 2px 7px;
+    line-height: 1.2;
+}
+
+/* CAD amount input — larger themed +/- controls */
+
+.amount-input-wrapper {
+    position:relative;
+    display:inline-flex;
+    width:100%;
+}
+
+.amount-input-wrapper input {
+    width:100%;
+    padding-right:48px;
+    -moz-appearance:textfield;
+    appearance:textfield;
+}
+
+/* Hide native browser arrows */
+.amount-input-wrapper input::-webkit-inner-spin-button,
+.amount-input-wrapper input::-webkit-outer-spin-button {
+    -webkit-appearance:none;
+    margin:0;
+}
+
+/* Arrow-shaped CAD amount controls */
+
+.amount-stepper {
+    position:absolute;
+    top:2px;
+    right:2px;
+    bottom:2px;
+    width:42px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-evenly;
+    align-items:center;
+    gap:0;
+}
+
+.amount-stepper button {
+    flex:0 0 17px;
+    width:22px;
+    height:17px;
+    min-height:17px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:inherit;
+    font-size:15px;
+    line-height:1;
+    color:var(--text);
+    background:transparent;
+    border:none;
+    cursor:pointer;
+}
+
+.amount-stepper button:hover {
+    color:var(--accent);
+    background:transparent;
+    outline:none;
+}
+
+.amount-stepper button:active {
+    transform:scale(.9);
+}
+
+/* Automatic button text contrast */
+button:not(.pageMenuButton) {
+    color:var(--button-text, var(--text));
+}
+
+/* Buttons using the success colour */
+button.sourceStatusOn:not(.pageMenuButton) {
+    color:var(--success-button-text, var(--bg));
+}
+
+/* Stepper buttons have transparent backgrounds */
+.amount-stepper button:not(.pageMenuButton) {
+    color:var(--text);
+}
+
+/* Themes dropdown buttons — match overlay colours and compact sizing */
+
+.settingsContent button {
+    width:100%;
+    height:auto;
+    min-height:0;
+    flex:none;
+    box-sizing:border-box;
+    border:2px solid var(--line);
+    box-shadow:none;
+    padding:8px 6px;
+    font-family:inherit;
+    font-size:10px;
+    line-height:normal;
+    background:var(--bg);
+    color:var(--text);
+}
+
+.settingsContent button:not(:disabled):hover {
+    background:var(--accent);
+    color:var(--text);
+    border-color:var(--accent);
+    outline:none;
+}
+
+/* Mono-light */
+:root[data-theme="mono-light"] .settingsContent button {
+    background:#333333;
+    color:#ffffff;
+    border-color:#333333;
+}
+
+/* Mono-dark */
+:root[data-theme="mono-dark"] .settingsContent button {
+    background:#eeeeee;
+    color:#171717;
+    border-color:#eeeeee;
+}
+
+/* Consistent typography and normal casing in all prompt overlays */
+
+.overlay .modal h1 {
+    font-size:20px;
+    line-height:1.6;
+    font-weight:normal;
+    text-transform:none;
+    margin:0 0 16px;
+}
+
+.overlay .modal h2 {
+    font-size:16px;
+    line-height:1.7;
+    font-weight:normal;
+    text-transform:none;
+    margin:0 0 12px;
+}
+
+.overlay .modal h3 {
+    font-size:13px;
+    line-height:1.7;
+    font-weight:normal;
+    text-transform:none;
+    margin:0 0 10px;
+}
+
+.overlay .modal p {
+    font-size:11px;
+    line-height:1.8;
+    text-transform:none;
+}
+
+.overlay .modal label {
+    font-size:11px;
+    line-height:1.8;
+    text-transform:none;
+}
+
+.overlay .modal small,
+.overlay .modal .muted {
+    font-size:9px;
+    line-height:1.7;
+    text-transform:none;
+}
+
+.overlay .modal button,
+.overlay .modal input,
+.overlay .modal select,
+.overlay .modal textarea {
+    text-transform:none;
+}
+
+/* Prompt overlay title and secondary text colours */
+
+.overlay .modal h1,
+.overlay .modal h2,
+.overlay .modal h3 {
+    color:var(--text);
+}
+
+.overlay .modal p,
+.overlay .modal label,
+.overlay .modal small,
+.overlay .modal .muted {
+    color:var(--muted);
+}
+
+/* Overlay Look */
+.lookGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.lookGrid label {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    font-size: 10px;
+    color: var(--text);
+}
+
+.lookGrid input,
+.lookGrid select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.lookGrid input[type="text"] {
+    padding-right: 34px;
+    text-transform: uppercase;
+}
+
+/* HEX boxes: keep the # inside the input (Themes + Edit Overlays) */
+.hex-input-wrapper {
+    position: relative;
+    display: block;
+}
+
+.customThemeFields .hex-input-wrapper {
+    display: inline-block;
+    max-width: 100%;
+}
+
+.hex-prefix {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    line-height: 1;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.lookGrid label .hex-input-wrapper input {
+    padding-left: 24px;
+}
+
+.lookGrid input.lookBad {
+    border-color: var(--bad);
+}
+
+.lookSwatch {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--text);
+    pointer-events: none;
+}
+
+@media (max-width: 700px) {
+    .lookGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Force Buttons CAPS */
+button,
+.pageMenuButton,
+.pageMenuContent a,
+.settingsContent button,
+.modal .buttons button,
+.customThemeButtons button,
+.sourceStatusButton,
+.amount-stepper button,
+.removeSourceX,
+#saveBtn,
+#closeGoalBtn,
+#newBtn,
+#newCloseBtn {
+    text-transform: uppercase !important;
+}
+
+.button-container {
+    display: flex;
+    flex-wrap: wrap; /* Allows buttons to drop down cleanly on mobile */
+    gap: 8px;        /* Consistent spacing whether side-by-side or stacked */
+}
+
+.queueDonationRow select::picker(select) {
+    position-area: block-end span-inline-start;
+}
+
+/* Keep the dropdown button clickable to open, but disable clicking/hovering inside the list */
+#activeSourcesSelect {
+    cursor: pointer;
+}
+
+#activeSourcesSelect::picker(select) {
+    cursor: default;
+}
+
+#activeSourcesSelect option {
+    pointer-events: none !important;
+    cursor: default !important;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+}
+
+#activeSourcesSelect option:hover,
+#activeSourcesSelect option:focus,
+#activeSourcesSelect option:checked {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    outline: none !important;
+}
