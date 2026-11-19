@@ -727,28 +727,44 @@ setInterval(
     POLL_INTERVAL_MS
 );
 
-/* Names overlay ON/OFF (set from the goal admin page) */
+/* Names overlay ON/OFF & font color (set from the goal admin page) */
 (function () {
-    async function updateNamesVisibility() {
-    try {
-        const response = await fetch(
-            `http://${window.location.hostname}:3000/api/style?t=` + Date.now(),
-            { cache: "no-store" }
-        );
+    async function updateNamesStyle() {
+        try {
+            const response = await fetch(
+                `http://${window.location.hostname}:3000/api/style?t=` + Date.now(),
+                { cache: "no-store" }
+            );
 
             if (!response.ok) {
                 return;
             }
 
             const style = await response.json();
-            const on = !style.names || style.names.enabled !== false;
+            const namesStyle = style.names || {};
+            const on = namesStyle.enabled !== false;
 
             document.documentElement.style.opacity = on ? "" : "0";
+
+            const rawColor = typeof namesStyle.textColor === "string"
+                ? namesStyle.textColor.trim()
+                : "";
+            const customColor = rawColor && !rawColor.startsWith("#")
+                ? "#" + rawColor
+                : rawColor;
+
+            if (/^#[0-9a-fA-F]{6}$/.test(customColor)) {
+                document.documentElement.style.setProperty("--names-text-color", customColor);
+                document.body.classList.add("custom-names-color");
+            } else {
+                document.documentElement.style.removeProperty("--names-text-color");
+                document.body.classList.remove("custom-names-color");
+            }
         } catch (error) {
-            /* goal server not reachable: leave the overlay as it is */
+            console.error("Could not update names overlay style:", error);
         }
     }
 
-    updateNamesVisibility();
-    setInterval(updateNamesVisibility, 3000);
+    updateNamesStyle();
+    setInterval(updateNamesStyle, 3000);
 })();
