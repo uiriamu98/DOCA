@@ -645,6 +645,10 @@ function applyGoalControl(result, control) {
         return true;
     });
 
+    /*
+     * Streamlabs donations never appear in the DonatePay/DonationAlerts
+     * lists, so they are taken straight from the goal server.
+     */
     if (control.sourceEnabled.streamlabs !== false) {
         for (const d of control.donations) {
             if (
