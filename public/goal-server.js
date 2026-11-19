@@ -118,6 +118,10 @@ function loadState() {
         saved.manualDonations = {};
     }
 
+    /*
+     * Ensure every archived donation remains assigned
+     * to the goal whose archive contains it.
+     */
     for (const goal of saved.closed) {
         if (!goal.id) {
             goal.id = newQueueId();
@@ -1148,6 +1152,12 @@ async function collectOpen(options = {}) {
         }
     });
 
+    /*
+     * Restore manually retained donations when their original
+     * source no longer returns them.
+     *
+     * Live source records take priority to avoid duplicates.
+     */
     const liveIds = new Set(items.map(item => item.id));
 
     for (const saved of Object.values(state.manualDonations || {})) {
@@ -1325,10 +1335,12 @@ const STYLE_SCHEMA = {
         width:        { type: "number", def: 700, min: 200, max: 1800 }
     }
 };
-
 STYLE_SCHEMA.goal.rainbow = { type: "boolean", def: true };
 STYLE_SCHEMA.goal.enabled = { type: "boolean", def: true };
-STYLE_SCHEMA.names = { enabled: { type: "boolean", def: true } };
+STYLE_SCHEMA.names = {
+    enabled: { type: "boolean", def: true },
+    textColor: { type: "color", def: "" }
+};
 
 function cleanStyleValue(rule, value) {
     if (rule.type === "boolean") {
@@ -1338,15 +1350,23 @@ function cleanStyleValue(rule, value) {
                 ? true
                 : rule.def;
     }
-    if (value === undefined || value === null || value === "") {
+    if (value === undefined || value === null) {
         return rule.def;
     }
 
     if (rule.type === "color") {
         const text = String(value).trim();
-        return /^#[0-9a-fA-F]{6}$/.test(text)
-            ? text.toUpperCase()
+        if (text === "") {
+            return "";
+        }
+        const normalized = text.startsWith("#") ? text : "#" + text;
+        return /^#[0-9a-fA-F]{6}$/.test(normalized)
+            ? normalized.toUpperCase()
             : rule.def;
+    }
+
+    if (value === "") {
+        return rule.def;
     }
 
     if (rule.type === "font") {
@@ -1400,7 +1420,7 @@ function loadOverlayStyle() {
 
 let overlayStyle = loadOverlayStyle();
 
-/* Public: the overlays read this */
+/* Public: the overlays read this (CORS open so the names overlay can too) */
 app.get("/api/style", (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.json(overlayStyle);
@@ -1666,6 +1686,10 @@ app.post("/api/admin/move-donation", async (req, res) => {
             });
         }
 
+        /*
+         * Find the donation in live/retained records first.
+         * If it is archived, its saved archive record is the fallback.
+         */
         const open = await collectOpen({ allGoals: true });
 
         const liveItem = open.items.find(
@@ -1706,7 +1730,7 @@ app.post("/api/admin/move-donation", async (req, res) => {
         };
 
         /*
-        * Moving into an archived goal:
+         * Moving into an archived goal:
          * store one archive snapshot and recalculate its total.
          */
         if (targetClosed) {
