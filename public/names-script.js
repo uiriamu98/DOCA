@@ -1,767 +1,770 @@
-require("dotenv").config({
-    path: require("path").join(__dirname, "..", ".env")
-});
+/* Settings */
+const POLL_INTERVAL_MS = 45000;
 
-const express = require("express");
-const io = require("socket.io-client");
+const DONOR_FADE_DURATION_MS = 6000;
+const STARTUP_HOLD_MS = 6700;
+const LABEL_FADE_MS = 350;
+const LABEL_DELAY_MS = 325;
 
-const app = express();
-const PORT = 3001;
-const CACHE_TIME_MS = 30000;
-const TWITCH_ANNOUNCE_URL = "http://127.0.0.1:3002/announce";
-const GOAL_STATE_URL = "http://127.0.0.1:3000/api/admin/state";
+const COIN_SOUND = "./Audio/coin.mp3.wav";
 
-const DONATIONALERTS_ENABLED =
-    String(process.env.DONATIONALERTS_ENABLED || "false").toLowerCase() === "true";
+const COIN_VOLUME_1 = 0.251;
+const COIN_VOLUME_2 = 0.224;
+const COIN_VOLUME_3 = 0.200;
 
-const STREAMLABS_ENABLED =
-    String(process.env.STREAMLABS_ENABLED || "false").toLowerCase() === "true";
+const LAST_24_HOURS_MS = 24 * 60 * 60 * 1000;
+const LAST_31_DAYS_MS = 31 * 24 * 60 * 60 * 1000;
+const LAST_365_DAYS_MS = 365 * 24 * 60 * 60 * 1000;
 
-app.get("/", (req, res) => {
-    res.sendFile(require("path").join(__dirname, "names-index.html"));
-});
+/* Elements */
+const transactionsElement =
+    document.getElementById("transactions");
 
-app.use(express.static(__dirname));
+const monthlyTransactionsElement =
+    document.getElementById("monthly-transactions");
 
-let cachedTransactions = null;
-let lastFetchTime = 0;
-let pendingFetch = null;
+const recentTransactionsElement =
+    document.getElementById("recent-transactions");
 
-const knownTransactionIds = new Set();
-const announcingTransactionIds = new Set();
-const initializedSources = new Set();
+/* State */
+let donors = [];
+let monthlyDonors = [];
+let recentDonors = [];
 
-const knownStreamlabsIds = new Set();
-let streamlabsSocket = null;
+let currentIndex = 0;
+let monthlyIndex = 0;
+let recentIndex = 0;
 
-function getDonationAlertsName(donation) {
-    const username = String(donation.username || "").trim();
-    const name = String(donation.name || "").trim();
-    const donorName = username || name;
+let yearComplete = false;
+let monthComplete = false;
+let dayComplete = false;
 
-    if (
-        !donorName ||
-        donorName.toLowerCase() === "anonymous" ||
-        (!username && name.toLowerCase() === "donations")
-    ) {
-        return " ";
-    }
+let resetArmed = false;
 
-    return donorName;
-}
+let displayTimer = null;
+let monthlyDisplayTimer = null;
+let recentDisplayTimer = null;
 
-async function announceDonation(transaction) {
-    try {
-        const name =
+let introHoldTimer = null;
+let introTimer1 = null;
+let introTimer2 = null;
+let introFinishTimer = null;
+
+let introRunning = false;
+let cycleStarted = false;
+
+/* Build separate 24h, 31d and 365d donation buckets.
+   Donations graduate individually.
+   The 365d expiry resets whenever a donation graduates into it. */
+function buildDonorBuckets(transactions, now) {
+    const groups = new Map();
+
+    for (const transaction of transactions) {
+        const rawName = String(
             transaction.what ??
             transaction.vars?.name ??
-            "Anonymous";
+            ""
+        ).trim();
 
-        const amount = Number(transaction.sum);
+        const name =
+            !rawName ||
+            ["anonymous", "donations"].includes(rawName.toLowerCase())
+                ? "Anonymous"
+                : rawName;
 
-        const formattedAmount = Number.isFinite(amount)
-            ? amount.toString()
-            : String(transaction.sum || "");
+        const currency = String(
+            transaction.currency || ""
+        ).toUpperCase();
 
-        const currency =
-            String(transaction.currency || "").toUpperCase();
+        const key = `${name.toLowerCase()}|${currency}`;
 
-        const displayName = String(name).trim();
-
-        let message =
-            `${displayName || "Anonymous"} +${currency} ${formattedAmount} with ${transaction.source || "DonatePay"}`;
-
-        if (message.length > 500) {
-            message = message.substring(0, 497) + "...";
+        if (!groups.has(key)) {
+            groups.set(key, []);
         }
 
-        console.log("Sending Twitch announcement:", message);
-
-        const response = await fetch(TWITCH_ANNOUNCE_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message,
-                color: "purple"
-            })
+        groups.get(key).push({
+            ...transaction,
+            what: name,
+            currency,
+            time: new Date(transaction.created_at).getTime()
         });
-
-        const text = await response.text();
-
-        if (!response.ok) {
-            throw new Error(
-                `Twitch server returned HTTP ${response.status}: ${text}`
-            );
-        }
-
-        console.log("Twitch announcement sent successfully.");
-    } catch (error) {
-        console.error(
-            "Could not send Twitch announcement:",
-            error.message
-        );
-    }
-}
-
-function isSuccessfulDonation(transaction) {
-    const date = String(transaction.created_at || "");
-
-    return (
-        transaction.type === "donation" &&
-        transaction.status === "success" &&
-        date >= "2026-01-01" &&
-        date < "2027-01-01"
-    );
-}
-
-async function processNewDonations(transactions, source) {
-    const successfulDonations =
-        transactions.filter(isSuccessfulDonation);
-
-    if (!initializedSources.has(source)) {
-        for (const donation of successfulDonations) {
-            knownTransactionIds.add(String(donation.id));
-        }
-
-        initializedSources.add(source);
-
-        console.log(
-            `Initialized ${source} with ${successfulDonations.length} existing successful donation(s).`
-        );
-
-        return;
     }
 
-    for (const donation of successfulDonations) {
-        const transactionId = String(donation.id);
+    const recent = [];
+    const monthly = [];
+    const yearly = [];
 
-        if (
-            knownTransactionIds.has(transactionId) ||
-            announcingTransactionIds.has(transactionId)
-        ) {
-            continue;
-        }
+    for (const donations of groups.values()) {
+        donations.sort((a, b) => a.time - b.time);
 
-        knownTransactionIds.add(transactionId);
-        announcingTransactionIds.add(transactionId);
-
-        console.log(
-            "NEW SUCCESSFUL DONATION:",
-            transactionId
-        );
-
-        try {
-            await announceDonation(donation);
-        } finally {
-            announcingTransactionIds.delete(transactionId);
-        }
-    }
-}
-
-async function getDonatePayTransactions() {
-    console.log("Requesting transactions from DonatePay...");
-
-    const response = await fetch(
-        `https://donatepay.eu/api/v1/transactions?access_token=${process.env.DONATEPAY_API_KEY}`
-    );
-
-    console.log("DonatePay HTTP status:", response.status);
-
-    if (!response.ok) {
-        throw new Error(
-            `DonatePay API returned HTTP ${response.status}`
-        );
-    }
-
-    const data = await response.json();
-
-    if (!Array.isArray(data?.data)) {
-        throw new Error(
-            "DonatePay did not return a valid transaction list"
-        );
-    }
-
-    return data.data.map(transaction => ({
-        ...transaction,
-        id: `dp_${transaction.id}`,
-        source: "DonatePay"
-    }));
-}
-
-async function getDonationAlertsTransactions() {
-    const token = process.env.DONATIONALERTS_ACCESS_TOKEN;
-
-    if (!token) {
-        throw new Error(
-            "Missing DONATIONALERTS_ACCESS_TOKEN"
-        );
-    }
-
-    console.log(
-        "Requesting transactions from DonationAlerts..."
-    );
-
-    const donations = [];
-    let page = 1;
-
-    while (true) {
-        const response = await fetch(
-            `https://www.donationalerts.com/api/v1/alerts/donations?page=${page}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/json"
-                }
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `DonationAlerts API returned HTTP ${response.status}`
-            );
-        }
-
-        const result = await response.json();
-
-        if (!Array.isArray(result.data)) {
-            throw new Error(
-                "DonationAlerts did not return a valid donation list"
-            );
-        }
-
-        donations.push(...result.data);
-
-        const lastPage = Number(result.meta?.last_page);
-
-        if (!Number.isInteger(lastPage) || lastPage < 1) {
-            throw new Error(
-                "DonationAlerts pagination metadata missing"
-            );
-        }
-
-        if (page >= lastPage) {
-            break;
-        }
-
-        page++;
-    }
-
-    return donations
-        .filter(
-            donation =>
-                donation.is_shown !== 0 &&
-                donation.is_shown !== false
-        )
-        .map(donation => {
-            const name = getDonationAlertsName(donation);
-
-            return {
-                id: `da_${donation.id}`,
-                source: "DonationAlerts",
-                type: "donation",
-                status: "success",
-                what: name,
-                vars: {
-                    name,
-                    comment: donation.message || ""
-                },
-                sum: donation.amount,
-                currency: donation.currency,
-                comment: donation.message || "",
-                created_at: donation.created_at
-            };
-        });
-}
-
-async function fetchTransactions() {
-    const results = await Promise.allSettled([
-        getDonatePayTransactions(),
-        DONATIONALERTS_ENABLED
-            ? getDonationAlertsTransactions()
-            : Promise.resolve([])
-    ]);
-
-    const [dpResult, daResult] = results;
-
-    const previous = Array.isArray(cachedTransactions?.data)
-        ? cachedTransactions.data
-        : [];
-
-    let dpTransactions = [];
-    let daTransactions = [];
-
-    if (dpResult.status === "fulfilled") {
-        dpTransactions = dpResult.value;
-
-        await processNewDonations(
-            dpTransactions,
-            "DonatePay"
-        );
-    } else {
-        console.error(
-            "DonatePay error:",
-            dpResult.reason
-        );
-
-        dpTransactions = previous.filter(
-            t => t.source === "DonatePay"
-        );
-    }
-
-    if (DONATIONALERTS_ENABLED) {
-        if (daResult.status === "fulfilled") {
-            daTransactions = daResult.value;
-
-            await processNewDonations(
-                daTransactions,
-                "DonationAlerts"
-            );
-        } else {
-            console.error(
-                "DonationAlerts error:",
-                daResult.reason
-            );
-
-            daTransactions = previous.filter(
-                t => t.source === "DonationAlerts"
-            );
-        }
-    }
-
-    if (
-        dpResult.status !== "fulfilled" &&
-        (
-            !DONATIONALERTS_ENABLED ||
-            daResult.status !== "fulfilled"
-        ) &&
-        cachedTransactions === null
-    ) {
-        throw new Error(
-            "Both donation services are unavailable"
-        );
-    }
-
-    const transactions = [
-        ...dpTransactions,
-        ...daTransactions
-    ].sort(
-        (a, b) =>
-            new Date(b.created_at).getTime() -
-            new Date(a.created_at).getTime()
-    );
-
-    cachedTransactions = {
-        data: transactions,
-        sources: {
-            donatePay: {
-                connected: dpResult.status === "fulfilled",
-                donationCount:
-                    dpTransactions.filter(isSuccessfulDonation).length
-            },
-            donationAlerts: {
-                enabled: DONATIONALERTS_ENABLED,
-                connected:
-                    DONATIONALERTS_ENABLED &&
-                    daResult.status === "fulfilled",
-                donationCount:
-                    daTransactions.filter(isSuccessfulDonation).length
-            }
-        }
-    };
-
-    lastFetchTime = Date.now();
-
-    return cachedTransactions;
-}
-
-async function getTransactions() {
-    if (
-        cachedTransactions !== null &&
-        Date.now() - lastFetchTime < CACHE_TIME_MS
-    ) {
-        return cachedTransactions;
-    }
-
-    if (pendingFetch) {
-        return pendingFetch;
-    }
-
-    pendingFetch = fetchTransactions();
-
-    try {
-        return await pendingFetch;
-    } finally {
-        pendingFetch = null;
-    }
-}
-
-function startStreamlabsSocket() {
-    if (!STREAMLABS_ENABLED) {
-        console.log("Streamlabs: DISABLED");
-        return;
-    }
-
-    const token = process.env.STREAMLABS_SOCKET_TOKEN;
-
-    if (!token) {
-        console.error(
-            "Streamlabs: STREAMLABS_SOCKET_TOKEN is missing."
-        );
-        return;
-    }
-
-    streamlabsSocket = io(
-        "https://sockets.streamlabs.com",
-        {
-            query: {
-                token
-            },
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 10000
-        }
-    );
-
-    streamlabsSocket.on("connect", () => {
-        console.log(
-            "Streamlabs socket connected."
-        );
-    });
-
-    streamlabsSocket.on("disconnect", reason => {
-        console.log(
-            "Streamlabs socket disconnected:",
-            reason
-        );
-    });
-
-    streamlabsSocket.on("connect_error", error => {
-        console.error(
-            "Streamlabs connection error:",
-            error.message
-        );
-    });
-
-    streamlabsSocket.on("error", error => {
-        console.error(
-            "Streamlabs socket error:",
-            error?.message || error
-        );
-    });
-
-    streamlabsSocket.on("event", async event => {
-        if (!event || event.type !== "donation") {
-            return;
-        }
-
-        const donations = Array.isArray(event.message)
-            ? event.message
-            : event.message
-                ? [event.message]
-                : [];
+        const recentDonations = [];
+        const monthlyDonations = [];
+        const graduatedDonations = [];
 
         for (const donation of donations) {
-            if (!donation || typeof donation !== "object") {
-                continue;
+            const age = now - donation.time;
+
+            if (age <= LAST_24_HOURS_MS) {
+                recentDonations.push(donation);
+            } else if (age <= LAST_31_DAYS_MS) {
+                monthlyDonations.push(donation);
+            } else {
+                graduatedDonations.push({
+                    ...donation,
+                    graduationTime:
+                        donation.time + LAST_31_DAYS_MS
+                });
+            }
+        }
+
+        /* Add all donations in a category into one donor total */
+        function makeBucket(bucketDonations, extra = {}) {
+            if (bucketDonations.length === 0) {
+                return null;
             }
 
-            const rawId = donation.donation_id ?? donation.id;
-            const donationId =
-                rawId === undefined || rawId === null
-                    ? null
-                    : `sl_${rawId}`;
+            const firstDonation = bucketDonations[0];
+            const latestDonation =
+                bucketDonations[bucketDonations.length - 1];
 
-            if (
-                donationId &&
-                knownStreamlabsIds.has(donationId)
-            ) {
-                continue;
-            }
-
-            if (donationId) {
-                knownStreamlabsIds.add(donationId);
-            }
-
-            const transaction = {
-                id: donationId,
-                source: "Streamlabs",
-                type: "donation",
-                status: "success",
-                what:
-                    donation.from ??
-                    donation.name ??
-                    "Anonymous",
-                sum: donation.amount,
-                currency: donation.currency || "",
-                comment: donation.message || "",
-                created_at: new Date().toISOString()
-            };
-
-            console.log(
-                "NEW STREAMLABS DONATION:",
-                donationId || "No ID"
+            const sum = bucketDonations.reduce(
+                (total, donation) =>
+                    total + (Number(donation.sum) || 0),
+                0
             );
 
-            await announceDonation(transaction);
-        }
-    });
-}
-
-/*
- * GOAL ADMIN CONTROL
- *
- * Asks the goal server (port 3000) which sources are ON and which
- * donations are ticked Y/N, then filters the scrolling names to match.
- *
- * - Source OFF in the admin panel      -> its names are hidden.
- * - Donation unticked (N) in the panel -> that name is hidden.
- * - Donation ticked (Y)                -> that name is shown.
- * - Donation the goal server does not know about -> shown as before.
- * - Goal server unreachable            -> everything shown as before.
- */
-const GOAL_SOURCE_NAMES = {
-    donatePay: "DonatePay",
-    donationAlerts: "DonationAlerts",
-    streamlabs: "Streamlabs"
-};
-
-function stripIdPrefix(id) {
-    return String(id ?? "").replace(/^((dp|da|sl)_)+/i, "");
-}
-
-function normalizeName(value) {
-    return String(value ?? "").trim().toLowerCase();
-}
-
-let lastGoodGoalControl = null;
-
-async function getGoalControl() {
-    try {
-        const response = await fetch(GOAL_STATE_URL, {
-            headers: { "X-Admin": "1" },
-            cache: "no-store",
-            signal: AbortSignal.timeout(15000)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            return {
+                ...latestDonation,
+                sum,
+                firstDonationAt: firstDonation.created_at,
+                lastDonationAt: latestDonation.created_at,
+                ...extra
+            };
         }
 
-        const state = await response.json();
+        const recentBucket = makeBucket(recentDonations);
+        const monthlyBucket = makeBucket(monthlyDonations);
 
-        const sourceEnabled = {};
-
-        for (const [key, label] of Object.entries(GOAL_SOURCE_NAMES)) {
-            const s = state?.open?.sources?.[key];
-
-            if (s) {
-                sourceEnabled[label.toLowerCase()] = s.enabled !== false;
-            }
+        if (recentBucket) {
+            recent.push(recentBucket);
         }
 
-        const openDonations = Array.isArray(state?.open?.donations)
-            ? state.open.donations
-            : [];
+        if (monthlyBucket) {
+            monthly.push(monthlyBucket);
+        }
 
-        const closedDonations = Array.isArray(state?.closed)
-            ? state.closed.flatMap(goal =>
-                Array.isArray(goal.donations) ? goal.donations : []
-            )
-            : [];
-
-        lastGoodGoalControl = {
-            sourceEnabled,
-            donations: [...openDonations, ...closedDonations]
-        };
-
-        return lastGoodGoalControl;
-    } catch (error) {
-        console.error(
-            "Could not read goal admin state:",
-            error.message,
-            lastGoodGoalControl
-                ? "(using last known admin settings)"
-                : "(showing all names)"
+        /* Sort donations by the moment they graduate into 365d */
+        graduatedDonations.sort(
+            (a, b) => a.graduationTime - b.graduationTime
         );
 
-        return lastGoodGoalControl;
+        /*
+         * A gap of more than 365 days between graduations
+         * expires the previous 365d accumulation.
+         */
+        let activeYearDonations = [];
+        let previousGraduationTime = null;
+
+        for (const donation of graduatedDonations) {
+            if (
+                previousGraduationTime !== null &&
+                donation.graduationTime - previousGraduationTime >
+                    LAST_365_DAYS_MS
+            ) {
+                activeYearDonations = [];
+            }
+
+            activeYearDonations.push(donation);
+            previousGraduationTime = donation.graduationTime;
+        }
+
+        if (activeYearDonations.length > 0) {
+            const latestGraduation =
+                activeYearDonations[
+                    activeYearDonations.length - 1
+                ].graduationTime;
+
+            /* The entire 365d total expires 365 days after
+               the latest donation added to that total. */
+            if (now - latestGraduation <= LAST_365_DAYS_MS) {
+                const yearBucket = makeBucket(
+                    activeYearDonations,
+                    {
+                        lastAddedAt: latestGraduation
+                    }
+                );
+
+                if (yearBucket) {
+                    yearly.push(yearBucket);
+                }
+            }
+        }
+    }
+
+    return {
+        recent,
+        monthly,
+        yearly
+    };
+}
+
+/* Fetch transactions */
+async function fetchTransactions() {
+    try {
+        const response = await fetch(
+            "/api/names?t=" + Date.now(),
+            {
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Server responded with ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+
+        const transactions = Array.isArray(data.data)
+            ? data.data
+            : [];
+
+        const now = Date.now();
+
+        const validDonations = transactions
+            .filter((transaction) => {
+                if (
+                    transaction.type !== "donation" ||
+                    transaction.status !== "success"
+                ) {
+                    return false;
+                }
+
+                const time = new Date(
+                    transaction.created_at
+                ).getTime();
+
+                return (
+                    Number.isFinite(time) &&
+                    time <= now
+                );
+            })
+            .sort((a, b) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
+            );
+
+        /* Build separate donation buckets */
+        const buckets = buildDonorBuckets(
+            validDonations,
+            now
+        );
+
+        recentDonors = buckets.recent;
+        monthlyDonors = buckets.monthly;
+        donors = buckets.yearly;
+
+        if (currentIndex >= donors.length) {
+            currentIndex = 0;
+        }
+
+        if (monthlyIndex >= monthlyDonors.length) {
+            monthlyIndex = 0;
+        }
+
+        if (recentIndex >= recentDonors.length) {
+            recentIndex = 0;
+        }
+
+        updateFinalDayAppearance();
+
+        if (
+            !introRunning &&
+            !cycleStarted &&
+            hasAnyDonors()
+        ) {
+            startCycle();
+        }
+
+    } catch (error) {
+        console.error(
+            "Failed to fetch transactions:",
+            error
+        );
     }
 }
 
-function applyGoalControl(result, control) {
-    if (!control || !result || !Array.isArray(result.data)) {
-        return result;
+/* Donor counts */
+function hasAnyDonors() {
+    return (
+        donors.length +
+        monthlyDonors.length +
+        recentDonors.length
+    ) > 0;
+}
+
+/* Final-day detection */
+function isFinalDay(donor, category) {
+    const now = Date.now();
+
+    if (category === "24h") {
+        return false;
     }
 
-    const byId = new Map();
-    const byDetails = new Map();
+    if (category === "31d") {
+        const firstTime = new Date(
+            donor.firstDonationAt ?? donor.created_at
+        ).getTime();
 
-    for (const d of control.donations) {
-        const source = normalizeName(d.source);
-        const included = d.included !== false;
-
-        if (d.id !== undefined && d.id !== null) {
-            byId.set(`${source}|${stripIdPrefix(d.id)}`, included);
-        }
-
-        const detailsKey =
-            `${source}|${normalizeName(d.name)}|${Number(d.amount)}|` +
-            `${String(d.currency || "").toUpperCase()}`;
-
-        if (!byDetails.has(detailsKey)) {
-            byDetails.set(detailsKey, []);
-        }
-
-        byDetails.get(detailsKey).push(included);
-    }
-
-    const filtered = result.data.filter(transaction => {
-        const source = normalizeName(transaction.source);
-
-        if (control.sourceEnabled[source] === false) {
+        if (!Number.isFinite(firstTime)) {
             return false;
         }
 
-        const idKey = `${source}|${stripIdPrefix(transaction.id)}`;
+        const age = now - firstTime;
 
-        if (byId.has(idKey)) {
-            return byId.get(idKey);
-        }
-
-        const detailsKey =
-            `${source}|${normalizeName(transaction.what)}|` +
-            `${Number(transaction.sum)}|` +
-            `${String(transaction.currency || "").toUpperCase()}`;
-
-        const matches = byDetails.get(detailsKey);
-
-        if (matches && matches.length) {
-            return matches.some(included => included);
-        }
-
-        return true;
-    });
-
-    /*
-     * Streamlabs donations never appear in the DonatePay/DonationAlerts
-     * lists, so they are taken straight from the goal server.
-     */
-    if (control.sourceEnabled.streamlabs !== false) {
-        for (const d of control.donations) {
-            if (
-                normalizeName(d.source) !== "streamlabs" ||
-                d.included === false
-            ) {
-                continue;
-            }
-
-            const date = new Date(d.date);
-
-            if (Number.isNaN(date.getTime())) {
-                continue;
-            }
-
-            filtered.push({
-                id: `sl_${stripIdPrefix(d.id)}`,
-                source: "Streamlabs",
-                type: "donation",
-                status: "success",
-                what: d.name,
-                vars: { name: d.name },
-                sum: d.amount,
-                currency: d.currency,
-                comment: d.message || "",
-                created_at: date.toISOString()
-            });
-        }
+        return (
+            age > LAST_31_DAYS_MS - LAST_24_HOURS_MS &&
+            age <= LAST_31_DAYS_MS
+        );
     }
 
-    filtered.sort(
-        (a, b) =>
-            new Date(b.created_at).getTime() -
-            new Date(a.created_at).getTime()
+    if (category === "365d") {
+        const lastAddedTime = new Date(
+            donor.lastAddedAt
+        ).getTime();
+
+        if (!Number.isFinite(lastAddedTime)) {
+            return false;
+        }
+
+        const age = now - lastAddedTime;
+
+        return (
+            age > LAST_365_DAYS_MS - LAST_24_HOURS_MS &&
+            age <= LAST_365_DAYS_MS
+        );
+    }
+
+    return false;
+}
+
+/* Update final-day appearance */
+function updateFinalDayAppearance() {
+    const entries = [
+        {
+            element: transactionsElement,
+            donor: donors[currentIndex],
+            category: "365d"
+        },
+        {
+            element: monthlyTransactionsElement,
+            donor: monthlyDonors[monthlyIndex],
+            category: "31d"
+        },
+        {
+            element: recentTransactionsElement,
+            donor: recentDonors[recentIndex],
+            category: "24h"
+        }
+    ];
+
+    for (const entry of entries) {
+        const donation =
+            entry.element.querySelector(".donation");
+
+        if (!donation || !entry.donor) {
+            continue;
+        }
+
+        donation.classList.toggle(
+            "final-day",
+            isFinalDay(
+                entry.donor,
+                entry.category
+            )
+        );
+    }
+}
+
+/* Audio */
+function playCoin(volume) {
+    if (document.documentElement.style.opacity === "0") {
+        return;
+    }
+
+    const sound = new Audio(COIN_SOUND);
+
+    sound.volume = Math.max(
+        0,
+        Math.min(1, volume)
     );
 
-    return { ...result, data: filtered };
+    sound.play().catch(() => {});
+}
+
+/* Clear timers */
+function clearAllTimers() {
+    clearTimeout(displayTimer);
+    clearTimeout(monthlyDisplayTimer);
+    clearTimeout(recentDisplayTimer);
+
+    clearTimeout(introHoldTimer);
+    clearTimeout(introTimer1);
+    clearTimeout(introTimer2);
+    clearTimeout(introFinishTimer);
+
+    displayTimer = null;
+    monthlyDisplayTimer = null;
+    recentDisplayTimer = null;
+
+    introHoldTimer = null;
+    introTimer1 = null;
+    introTimer2 = null;
+    introFinishTimer = null;
+}
+
+/* Clear container elements */
+function resetContainers(isLabelState = false) {
+    const className = isLabelState ? "label-state" : "";
+
+    transactionsElement.className = className;
+    monthlyTransactionsElement.className = className;
+    recentTransactionsElement.className = className;
+
+    transactionsElement.textContent = isLabelState ? "365d" : "";
+    monthlyTransactionsElement.textContent = isLabelState ? "31d" : "";
+    recentTransactionsElement.textContent = isLabelState ? "24h" : "";
+}
+
+/* Run introduction sequence */
+function runIntroSequence() {
+    introHoldTimer = setTimeout(() => {
+        playCoin(COIN_VOLUME_1);
+
+        transactionsElement.classList.add(
+            "label-fade"
+        );
+
+        introTimer1 = setTimeout(() => {
+            playCoin(COIN_VOLUME_2);
+
+            monthlyTransactionsElement.classList.add(
+                "label-fade"
+            );
+        }, LABEL_DELAY_MS);
+
+        introTimer2 = setTimeout(() => {
+            playCoin(COIN_VOLUME_3);
+
+            recentTransactionsElement.classList.add(
+                "label-fade"
+            );
+        }, LABEL_DELAY_MS * 2);
+
+        introFinishTimer = setTimeout(() => {
+            resetContainers(false);
+            introRunning = false;
+
+            if (hasAnyDonors()) {
+                startCycle();
+            }
+        }, (LABEL_DELAY_MS * 2) + LABEL_FADE_MS);
+
+    }, STARTUP_HOLD_MS);
+}
+
+/* Start synchronized fade cycle */
+function startCycle() {
+    if (
+        introRunning ||
+        cycleStarted ||
+        !hasAnyDonors()
+    ) {
+        return;
+    }
+
+    cycleStarted = true;
+    resetArmed = false;
+
+    currentIndex = 0;
+    monthlyIndex = 0;
+    recentIndex = 0;
+
+    yearComplete = donors.length === 0;
+    monthComplete = monthlyDonors.length === 0;
+    dayComplete = recentDonors.length === 0;
+
+    resetContainers(false);
+
+    if (!yearComplete) {
+        showCurrentDonor();
+    }
+
+    if (!monthComplete) {
+        showMonthlyDonor();
+    }
+
+    if (!dayComplete) {
+        showRecentDonor();
+    }
+
+    checkResetReady();
+}
+
+/* 365d category */
+function showCurrentDonor() {
+    clearTimeout(displayTimer);
+    displayTimer = null;
+
+    if (
+        introRunning ||
+        donors.length === 0 ||
+        yearComplete
+    ) {
+        return;
+    }
+
+    showDonor(
+        transactionsElement,
+        donors[currentIndex],
+        "365d"
+    );
+
+    displayTimer = setTimeout(() => {
+        displayTimer = null;
+        transactionsElement.textContent = "";
+
+        currentIndex++;
+
+        if (currentIndex >= donors.length) {
+            currentIndex = 0;
+            yearComplete = true;
+
+            checkResetReady();
+            return;
+        }
+
+        showCurrentDonor();
+
+    }, DONOR_FADE_DURATION_MS);
+}
+
+/* 31d category */
+function showMonthlyDonor() {
+    clearTimeout(monthlyDisplayTimer);
+    monthlyDisplayTimer = null;
+
+    if (
+        introRunning ||
+        monthlyDonors.length === 0 ||
+        monthComplete
+    ) {
+        return;
+    }
+
+    showDonor(
+        monthlyTransactionsElement,
+        monthlyDonors[monthlyIndex],
+        "31d"
+    );
+
+    monthlyDisplayTimer = setTimeout(() => {
+        monthlyDisplayTimer = null;
+        monthlyTransactionsElement.textContent = "";
+
+        monthlyIndex++;
+
+        if (monthlyIndex >= monthlyDonors.length) {
+            monthlyIndex = 0;
+            monthComplete = true;
+
+            checkResetReady();
+            return;
+        }
+
+        showMonthlyDonor();
+
+    }, DONOR_FADE_DURATION_MS);
+}
+
+/* 24h category */
+function showRecentDonor() {
+    clearTimeout(recentDisplayTimer);
+    recentDisplayTimer = null;
+
+    if (
+        introRunning ||
+        recentDonors.length === 0 ||
+        dayComplete
+    ) {
+        return;
+    }
+
+    showDonor(
+        recentTransactionsElement,
+        recentDonors[recentIndex],
+        "24h"
+    );
+
+    recentDisplayTimer = setTimeout(() => {
+        recentDisplayTimer = null;
+        recentTransactionsElement.textContent = "";
+
+        recentIndex++;
+
+        if (recentIndex >= recentDonors.length) {
+            recentIndex = 0;
+            dayComplete = true;
+
+            checkResetReady();
+            return;
+        }
+
+        showRecentDonor();
+
+    }, DONOR_FADE_DURATION_MS);
 }
 
 /*
- * RAW list.
- * The goal server (port 3000) reads this one, so it must stay unfiltered.
+ * Wait until every category finishes.
+ * Continuously loops names smoothly without re-triggering the intro.
  */
-app.get("/api/transactions", async (req, res) => {
-    try {
-        res.json(await getTransactions());
-    } catch (error) {
-        console.error(
-            "Donation transactions error:",
-            error
-        );
+function checkResetReady() {
+    if (
+        !cycleStarted ||
+        introRunning ||
+        resetArmed
+    ) {
+        return;
+    }
 
-        if (cachedTransactions !== null) {
-            console.log(
-                "Using cached transaction data."
+    if (
+        yearComplete &&
+        monthComplete &&
+        dayComplete
+    ) {
+        resetArmed = true;
+        resetContainers(false);
+        cycleStarted = false;
+
+        if (hasAnyDonors()) {
+            startCycle();
+        }
+    }
+}
+
+/* Render donor */
+function showDonor(container, donor, category) {
+    const rawName = String(
+        donor.what ?? donor.vars?.name ?? ""
+    ).trim();
+
+    const name =
+        rawName.toLowerCase() === "anonymous" ||
+        rawName.toLowerCase() === "donations"
+            ? "Anonymous"
+            : rawName;
+
+    const amountNumber = Number(donor.sum);
+
+    const formattedAmount =
+        Number.isFinite(amountNumber)
+            ? amountNumber.toString()
+            : String(donor.sum || "");
+
+    const currency = donor.currency || "";
+
+    const finalDay = isFinalDay(
+        donor,
+        category
+    );
+
+    const displayText =
+        `${name || "Anonymous"} +${formattedAmount} ${currency}`;
+
+    const source =
+        String(donor.source || "").toLowerCase();
+
+    const sourceClass =
+        source === "donationalerts"
+            ? " source-da"
+            : source === "donatepay"
+                ? " source-dp"
+                : source === "streamlabs"
+                    ? " source-streamlabs"
+                    : "";
+
+    container.innerHTML = `
+        <div class="donation${finalDay ? " final-day" : ""}${sourceClass}">
+            ${escapeHtml(displayText)}
+        </div>
+    `;
+}
+
+/* Escape HTML */
+function escapeHtml(value) {
+    const div = document.createElement("div");
+
+    div.textContent = String(value);
+
+    return div.innerHTML;
+}
+
+/* Initial OBS introduction */
+resetContainers(true);
+introRunning = true;
+
+/* Fetch initial donations */
+fetchTransactions();
+
+/* First introduction */
+runIntroSequence();
+
+/* Poll for new donations */
+setInterval(
+    fetchTransactions,
+    POLL_INTERVAL_MS
+);
+
+/* Names overlay ON/OFF & font color (set from the goal admin page) */
+(function () {
+    async function updateNamesStyle() {
+        try {
+            const response = await fetch(
+                `http://${window.location.hostname}:3000/api/style?t=` + Date.now(),
+                { cache: "no-store" }
             );
 
-            return res.json(cachedTransactions);
+            if (!response.ok) {
+                return;
+            }
+
+            const style = await response.json();
+            const namesStyle = style.names || {};
+            const on = namesStyle.enabled !== false;
+
+            document.documentElement.style.opacity = on ? "" : "0";
+
+            const rawColor = typeof namesStyle.textColor === "string"
+                ? namesStyle.textColor.trim()
+                : "";
+            const customColor = rawColor && !rawColor.startsWith("#")
+                ? "#" + rawColor
+                : rawColor;
+
+            if (/^#[0-9a-fA-F]{6}$/.test(customColor)) {
+                document.documentElement.style.setProperty("--names-text-color", customColor);
+                document.body.classList.add("custom-names-color");
+            } else {
+                document.documentElement.style.removeProperty("--names-text-color");
+                document.body.classList.remove("custom-names-color");
+            }
+        } catch (error) {
+            console.error("Could not update names overlay style:", error);
         }
-
-        res.status(500).json({
-            error: "Donation API returned an error",
-            status: 500,
-            response: error.message
-        });
     }
-});
 
-/*
- * FILTERED list for the scrolling names overlay.
- * Follows the goal admin panel: source ON/OFF and donation Y/N.
- */
-app.get("/api/names", async (req, res) => {
-    try {
-        const result = await getTransactions();
-        const control = await getGoalControl();
-
-        res.json(applyGoalControl(result, control));
-    } catch (error) {
-        console.error(
-            "Names transactions error:",
-            error
-        );
-
-        if (cachedTransactions !== null) {
-            return res.json(
-                applyGoalControl(
-                    cachedTransactions,
-                    await getGoalControl()
-                )
-            );
-        }
-
-        res.status(500).json({
-            error: "Donation API returned an error",
-            status: 500,
-            response: error.message
-        });
-    }
-});
-
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(
-        `DonatePayNames running at http://localhost:${PORT}`
-    );
-
-    console.log(
-        `DonationAlerts: ${DONATIONALERTS_ENABLED ? "ENABLED" : "DISABLED"}`
-    );
-
-    console.log(
-        `Streamlabs: ${STREAMLABS_ENABLED ? "ENABLED" : "DISABLED"}`
-    );
-
-    startStreamlabsSocket();
-});
+    updateNamesStyle();
+    setInterval(updateNamesStyle, 3000);
+})();
