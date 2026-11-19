@@ -59,19 +59,20 @@ body {
     opacity: 1;
 }
 
-/* DonationAlerts F57D07 */
-.donation.source-da {
-    color: #F57D07;
-}
-
-/* DonatePay BFFF8C */
-.donation.source-dp {
-    color: #BFFF8C;
-}
-
-/* Streamlabs 009CDE */
+/* DonationAlerts #F57D07, DonatePay #BFFF8C, Streamlabs #009CDE */
+.donation,
+.donation.source-da,
+.donation.source-dp,
 .donation.source-streamlabs {
-    color: #009CDE;
+    color: #FFFFFF;
+}
+
+/* Admin override for all donation names */
+body.custom-names-color .donation,
+body.custom-names-color .donation.source-da,
+body.custom-names-color .donation.source-dp,
+body.custom-names-color .donation.source-streamlabs {
+    color: var(--names-text-color) !important;
 }
 
 /* Label animation */
