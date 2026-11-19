@@ -1513,10 +1513,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return { wrap: w, input: i, min, max };
             };
             const fillField = makeColor("Bar Fill Color", look.fillColor), backField = makeColor("Bar Background Color", look.barColor);
+const goalTextColorField = makeColor("Goal Font Color", look.textColor || "#FFFFFF"), namesTextColorField = makeColor("Names Font Color", namesLook.textColor || "#FFFFFF");
             const heightField = makeNumber("Bar Height", look.barHeight, 10, 120), widthField = makeNumber("Bar Width", look.width, 200, 1800);
-            const colorFields = [fillField, backField], numberFields = [heightField, widthField];
+            const colorFields = [fillField, backField, goalTextColorField, namesTextColorField], numberFields = [heightField, widthField];
             const grid = el("div", null, "lookGrid");
-            [fillField, backField, heightField, widthField].forEach(f => grid.appendChild(f.wrap));
+            [fillField, backField, goalTextColorField, heightField, widthField].forEach(f => grid.appendChild(f.wrap));
+const namesGrid = el("div", null, "lookGrid");
+namesGrid.appendChild(namesTextColorField.wrap);
             
             const makeToggleBtn = initial => {
                 let state = Boolean(initial);
@@ -1575,6 +1578,7 @@ document.addEventListener("DOMContentLoaded", () => {
             donorNamesSection.style.cssText = "margin-top: 15px; display: flex; flex-direction: column; gap: 10px; width: 100%;";
             donorNamesSection.appendChild(el("p", "Donor Names", "muted"));
             donorNamesSection.appendChild(makeUrlRow("URL", "http://localhost:3001/", namesToggle.btn));
+donorNamesSection.appendChild(namesGrid);
 
             const urlsContainer = el("div");
             urlsContainer.style.cssText = "margin-top: 10px; display: flex; flex-direction: column; gap: 10px; width: 100%;";
@@ -1628,12 +1632,16 @@ document.addEventListener("DOMContentLoaded", () => {
                             goal: {
                                 fillColor: "#" + fillField.input.value.trim().toUpperCase(),
                                 barColor: "#" + backField.input.value.trim().toUpperCase(),
+textColor: "#" + goalTextColorField.input.value.trim().toUpperCase(),   
                                 barHeight: Number(heightField.input.value),
                                 width: Number(widthField.input.value),
                                 rainbow: rainbowToggle.value,
                                 enabled: goalToggle.value
                             },
-                            names: { enabled: namesToggle.value }
+                            names: {
+textColor: "#" + namesTextColorField.input.value.trim().toUpperCase(),
+enabled: namesToggle.value
+}
                         }
                     })
                 });
