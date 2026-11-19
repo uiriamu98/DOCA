@@ -44,6 +44,7 @@ function applyOverlayStyle(style) {
     const root = document.documentElement.style;
 
     root.setProperty("--goal-fill-color", look.fillColor);
+if (look.textColor) root.setProperty("--goal-text-color", look.textColor);
     root.setProperty("--goal-bar-color", look.barColor);
     root.setProperty("--goal-bar-height", look.barHeight + "px");
     root.setProperty("--goal-width", look.width + "px");
