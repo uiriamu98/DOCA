@@ -1,42 +1,18 @@
 {
+  "targetCurrency": "CAD",
   "current": {
     "id": "goal_initial",
-    "name": "Avatar: Frontiers of Pandora™",
-    "amount": 40
+    "name": "New Goal",
+    "amount": 100
   },
   "closed": [],
-  "queue": [
-    {
-      "id": "mwjg4d7wmzi52",
-      "name": "Toronto ✈️ Moscow",
-      "amount": 4000
-    }
-  ],
+  "queue": [],
   "sourcesConfig": {
-    "donationAlerts": false,
-    "streamlabs": true,
     "donatePay": true,
-    "custom_mwiigem80yj": false
+    "donationAlerts": false,
+    "streamlabs": false
   },
-  "excludedDonationIds": [
-    "dp_da_176275040",
-    "dp_da_161630650",
-    "dp_da_183360367",
-    "dp_da_183498130",
-    "da_161630650",
-    "da_176275040",
-    "da_183360367",
-    "da_183498130",
-    "da_192985162"
-  ],
-  "goalDonationIds": {
-    "dp_dp_13912271": "goal_initial",
-    "dp_dp_13975707": "goal_initial",
-    "dp_dp_13977785": "goal_initial",
-    "da_183360367": "goal_initial",
-    "da_183498130": "goal_initial",
-    "da_192985162": "goal_initial"
-  },
-  "manualDonations": {},
-  "targetCurrency": "CAD"
+  "excludedDonationIds": [],
+  "goalDonationIds": {},
+  "manualDonations": {}
 }
