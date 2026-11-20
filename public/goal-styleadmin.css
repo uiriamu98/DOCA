@@ -110,7 +110,12 @@ main {
 
 h1 { font-size:15px; }
 h2 { font-size:25px; margin:0 0 12px; }
-h2.goalTitle { text-align:center; }
+h2.goalTitle {
+    text-align: center;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.4;
+}
 
 .muted {
     color:var(--muted);
