@@ -1014,18 +1014,31 @@ select:disabled {
 }
 
 .bottom-signature {
-    min-height:67%;
     width:100%;
     display:flex;
-    justify-content:flex-end;
+    justify-content:center;
     align-items:flex-end;
-    padding:12px 24px;
-    margin-bottom:34px;
+    text-align:center;
+    margin-top:45px;
+    padding:0 24px 24px;
     background:transparent;
+    pointer-events:none;
+}
+
+.bottom-signature-link {
     color:var(--muted);
-    font-size:6px;
+    font-size:9px;
     letter-spacing:2px;
     opacity:.25;
+    text-decoration:none;
+    cursor:pointer;
+    pointer-events:auto;
+    transition:opacity .2s ease, color .2s ease;
+}
+
+.bottom-signature-link:hover {
+    opacity:1;
+    color:var(--text);
 }
 
 /* Focus */
