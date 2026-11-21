@@ -1,4 +1,9 @@
 /* Body */
+html,
+body {
+    height: 100%;
+}
+
 body {
     margin: 0;
     background: transparent;
@@ -13,7 +18,12 @@ body {
 
 /* Goal */
 .goal {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     width: 700px;
+    min-height: 100%;
+    box-sizing: border-box;
     margin: 0 auto;
     text-align: center;
 }
@@ -50,6 +60,7 @@ body {
 /* Bar */
 .bar {
     position: relative;
+    flex-shrink: 0;
     width: 100%;
     height: 35px;
     background: #110101;
@@ -296,6 +307,7 @@ body {
 
 .goal {
     width: var(--goal-width, 700px);
+    min-height: 100%;
 }
 
 .title {
